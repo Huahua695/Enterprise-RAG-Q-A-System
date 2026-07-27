@@ -1,0 +1,27 @@
+﻿# RAG 企业级知识库问答系统 - 后端依赖（已适配 Python 3.13）
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+sqlalchemy>=2.0.35
+pydantic>=2.9.2
+pydantic-settings>=2.6.0
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-multipart>=0.0.18
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+langchain-openai>=0.2.0
+faiss-cpu>=1.9.0
+pymupdf>=1.24.0
+python-docx>=1.1.0
+python-dotenv>=1.0.1
+aiofiles>=24.1.0
+openpyxl>=3.1.2
+pandas>=2.2.3
+requests>=2.32.3
+
+# 以下为可选增强（当前代码未使用，需要时取消注释）：
+# psycopg[binary]>=3.2   # PostgreSQL 驱动（切换到 PostgreSQL 时启用）
+# redis>=5.2.0           # 缓存层
+# celery>=5.4.0          # 异步任务队列

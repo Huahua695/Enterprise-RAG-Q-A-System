@@ -1,0 +1,38 @@
+﻿# Codex 多代理系统配置
+
+skills:
+  backend-dev:
+    prompt: 见文件 .codex/skills/backend-dev.md
+  frontend-dev:
+    prompt: 见文件 .codex/skills/frontend-dev.md
+
+agents:
+  main:
+    model: gpt-4.1
+    description: 技术项目经理，负责分析用户需求并委派给合适的子代理
+    system_prompt: |
+      你是一个技术项目经理。你会接收到用户的自然语言需求。请分析任务涉及的技术栈，并将其委派给合适的子代理：如果需求涉及后端（API、数据库、服务端逻辑），请使用 task 工具启动 backend 代理，并传入具体任务描述；如果需求涉及前端（界面、组件、样式、用户交互），请使用 task 工具启动 frontend 代理。子代理执行完毕后会返回结果，你只需整理并回复用户。
+    tools:
+      - task
+      - read
+      - write
+      - bash
+
+  backend:
+    model: gpt-4.1
+    description: 负责所有后端开发任务
+    skills:
+      - backend-dev
+    tools:
+      - bash
+      - write
+      - python
+
+  frontend:
+    model: gpt-4.1
+    description: 负责所有前端开发任务
+    skills:
+      - frontend-dev
+    tools:
+      - bash
+      - write

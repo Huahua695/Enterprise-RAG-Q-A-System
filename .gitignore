@@ -1,0 +1,42 @@
+# ==================== 敏感文件 ====================
+.env
+*.env.local
+*.env.production
+
+# ==================== Python ====================
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/*.pyc
+backend/*.pyo
+*.egg-info/
+dist/
+build/
+
+# ==================== Node ====================
+frontend/node_modules/
+frontend/dist/
+
+# ==================== 运行数据 ====================
+backend/db_data/
+backend/uploads/
+backend/chroma_db/
+backend/vector_db/
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# ==================== IDE / 系统 ====================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+*.log
+
+# ==================== 其他 ====================
+data/
+*.pyo
+.coverage
+htmlcov/

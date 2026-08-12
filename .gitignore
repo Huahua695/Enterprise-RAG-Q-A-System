@@ -43,3 +43,6 @@ data/
 *.pyo
 .coverage
 htmlcov/
+
+# ===== AI agent artifacts（本地工具生成，禁止入库） =====
+/.codex/

@@ -24,11 +24,13 @@ api.interceptors.request.use(
   }
 )
 
-// 响应拦截器 - 处理 401
+// 响应拦截器 - 处理 401（会话过期）
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // 登录接口的 401 是"用户名或密码错误"，不是会话过期，交给页面展示错误提示
+    const isLoginRequest = error.config?.url?.includes('/auth/login')
+    if (error.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem('token')
       localStorage.removeItem('role')
       window.location.href = '/login'

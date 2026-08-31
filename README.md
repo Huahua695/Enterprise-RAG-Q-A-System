@@ -106,21 +106,23 @@ npm run dev
 RAG/
 ├── backend/                    # 后端项目
 │   ├── app/
-│   │   ├── core/              # 核心配置（config/database/security）
-│   │   ├── models/            # 6 张数据表模型
+│   │   ├── core/              # 核心配置（config/database/security/rate_limit）
+│   │   ├── models/            # 8 张数据表模型（含 revoked_tokens、login_failures）
 │   │   ├── routes/            # API 路由（auth/chat/knowledge_base）
 │   │   ├── schemas/           # Pydantic 数据验证
 │   │   └── services/          # rag_service（FAISS RAG 引擎）
-│   │                          # local_embeddings（本地哈希向量化）
+│   │                          # document_processor（上传后台向量化任务）
 │   │                          # document_parser（PDF/Word/TXT/Excel 解析）
 │   ├── db_data/               # 运行数据（不入库）：SQLite main.db、
 │   │                          # 上传文件 uploads/、FAISS 索引 vector_db/
 │   ├── sample_data/           # 示例电商商品数据
+│   ├── tests/                 # 单元与接口测试（pytest）
 │   ├── .venv/                 # Python 虚拟环境（本地创建，不入库）
 │   ├── .env                   # 环境变量（本地创建，不入库）
 │   ├── requirements.txt
 │   ├── init_db.py             # 数据库初始化脚本
 │   └── run.py                 # 启动脚本
+├── e2e/                       # 端到端测试（Playwright，需真实前后端服务）
 └── frontend/                  # 前端项目
     ├── src/
     │   ├── components/        # ProtectedRoute 路由保护
@@ -132,13 +134,29 @@ RAG/
 
 ## 运行测试
 
+单元与接口测试（无需启动服务）：
+
 ```bash
 cd backend
 ./.venv/Scripts/python.exe -m pytest
 ```
 
-当前覆盖配置安全基线（SECRET_KEY 启动校验、路径默认值统一），
-测试范围与结果详见 [docs/测试报告.md](docs/测试报告.md)。
+覆盖认证安全（token 吊销、登录限流持久化到 SQLite）、上传安全、配置基线、
+后台向量化状态流转等，测试范围与结果详见 [docs/测试报告.md](docs/测试报告.md)。
+
+端到端测试（Playwright，需真实前后端服务）：
+
+```bash
+# 终端 1 启动后端：cd backend && python run.py
+# 终端 2 启动前端：cd frontend && npm run dev
+# 终端 3 运行 E2E（首次需先执行 playwright install chromium 装浏览器）：
+cd e2e
+../backend/.venv/Scripts/python.exe -m pytest -v
+```
+
+覆盖登录成败流、建知识库 → 上传文档 → 等待后台向量化完成 → 流式问答 →
+断言答案与引用来源。问答用例依赖 `AGNES_API_KEY`，未配置时自动跳过；
+前后端服务未启动或默认账户不可用时整组自动跳过（不误报失败）。
 
 CI：推送至 master 会触发 [Gitee Go](https://gitee.com/features/gitee-go) 流水线
 自动执行 pytest（配置见 `.workflow/master-pipeline.yml`，首次使用需在仓库

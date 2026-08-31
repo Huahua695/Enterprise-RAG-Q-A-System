@@ -1,6 +1,7 @@
 ﻿from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import Optional, List
+import logging
 import os
 import uuid
 
@@ -11,6 +12,8 @@ from app.core.security import get_current_user
 from app.services.rag_service import rag_engine
 from app.services.document_parser import parse_document
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -117,6 +120,7 @@ async def get_document_content(
             if os.path.exists(doc.file_path):
                 text = parse_document(doc.file_path, doc.file_type)
         except Exception:
+            logger.warning("文档 %s（%s）重新解析失败", doc.id, doc.filename, exc_info=True)
             text = "[文件已不存在或无法解析]"
 
     return {
@@ -186,6 +190,7 @@ async def upload_document(
             "chunks": len(chunks)
         }
     except Exception as e:
+        logger.exception("文档处理失败：doc=%s kb=%s", new_doc.id, knowledge_base_id)
         new_doc.status = "failed"
         new_doc.error_message = str(e)
         db.commit()

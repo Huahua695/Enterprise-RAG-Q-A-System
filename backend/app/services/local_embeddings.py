@@ -15,11 +15,16 @@
 只需实现同样的 LangChain Embeddings 接口并替换 rag_service 中的实例。
 """
 import hashlib
+import logging
 import re
 from typing import List
 
 import jieba
 from langchain_core.embeddings import Embeddings
+
+# jieba 在 import 时会把自身 logger 强制设为 DEBUG，需在导入后再压制，
+# 否则分词词典构建日志会刷进 app 日志（此处仅本模块负责 jieba 的导入时机）
+logging.getLogger("jieba").setLevel(logging.WARNING)
 
 
 class LocalHashEmbeddings(Embeddings):

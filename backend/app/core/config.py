@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     # 向量库配置（FAISS 本地持久化目录）
     VECTOR_STORE_DIR: str = "./db_data/vector_db"
 
+    # 日志配置
+    LOG_LEVEL: str = "INFO"  # DEBUG / INFO / WARNING / ERROR
+    LOG_DIR: str = "./db_data/logs"
+
     # 文件上传配置
     UPLOAD_DIR: str = "./db_data/uploads"
     MAX_UPLOAD_SIZE: str = "10MB"

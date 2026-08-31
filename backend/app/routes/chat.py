@@ -4,12 +4,15 @@ from sqlalchemy.orm import Session
 from typing import Optional, List
 import asyncio
 import json
+import logging
 
 from app.core.database import get_db, SessionLocal
 from app.models.models import User, Session as SessionModel, Message, KnowledgeBase as KBModel
 from app.schemas.chat import ChatRequest, ChatResponse, SessionCreate, SessionInfo, MessageInfo
 from app.core.security import get_current_user
 from app.services.rag_service import rag_engine
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -121,14 +124,16 @@ async def send_question(
             if kb_ids:
                 collection_names = [f"kb_{kb_id}" for kb_id in kb_ids]
         except (ValueError, TypeError):
-            pass
+            logger.debug("会话 %s 的 knowledge_base_ids 解析失败，回退到全部可见知识库", session.id)
     if not collection_names:
         kbs = db.query(KBModel).filter(
             (KBModel.owner_id == current_user.id) | (KBModel.is_public == True)
         ).all()
         collection_names = [f"kb_{kb.id}" for kb in kbs] or ["default"]
 
+    # ORM 对象在流式期间可能随请求 db 会话关闭而过期，先取出纯值
     session_id = session.id
+    user_id = current_user.id
 
     async def event_generator():
         full_answer = ""
@@ -150,8 +155,10 @@ async def send_question(
                 yield _sse({"type": "answer", "content": chunk})
 
             yield _sse({"type": "done"})
-        except Exception as e:
-            yield _sse({"type": "error", "message": str(e)})
+        except Exception:
+            # 原始异常只进日志，不透传给前端（避免泄漏内部实现细节）
+            logger.exception("问答生成失败：session=%s user=%s", session_id, user_id)
+            yield _sse({"type": "error", "message": "服务内部错误，请稍后重试"})
         finally:
             # 5. 持久化助手消息（流式响应期间原 request 作用域的 db 可能已关闭，另开会话）
             if full_answer:
@@ -165,7 +172,7 @@ async def send_question(
                         ))
                         s.commit()
                 except Exception:
-                    pass
+                    logger.exception("助手消息持久化失败：session=%s", session_id)
 
     return StreamingResponse(
         event_generator(),

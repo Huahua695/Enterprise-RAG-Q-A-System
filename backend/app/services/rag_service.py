@@ -1,4 +1,5 @@
-﻿import os
+﻿import logging
+import os
 from typing import List, Dict, AsyncGenerator
 
 from langchain_openai import ChatOpenAI
@@ -9,6 +10,8 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.core.config import settings
 from app.services.local_embeddings import LocalHashEmbeddings
+
+logger = logging.getLogger(__name__)
 
 
 PROMPT_TEMPLATE = """你是一个知识库问答助手。请根据以下知识库内容回答用户的问题。
@@ -147,6 +150,8 @@ class RAGEngine:
                         seen.add(key)
                         merged.append(doc)
             except Exception:
+                # 单个索引损坏不应拖垮整次检索，但必须留痕
+                logger.warning("知识库 %s 索引加载失败，已跳过", name, exc_info=True)
                 continue
         return merged[: min(k * 3, 15)]
 

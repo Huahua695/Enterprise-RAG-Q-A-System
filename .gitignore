@@ -30,6 +30,9 @@ backend/*.db
 backend/*.db-shm
 backend/*.db-wal
 
+# Docker 部署的持久化数据
+/docker-data/
+
 # ==================== IDE / 系统 ====================
 .vscode/
 .idea/

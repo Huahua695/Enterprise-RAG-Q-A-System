@@ -1,0 +1,27 @@
+services:
+  backend:
+    build: ./backend
+    container_name: rag-backend
+    environment:
+      # 必填：缺失时后端启动校验会拒绝（compose 会直接报错提示）
+      - SECRET_KEY=${SECRET_KEY:?请在项目根目录 .env 中设置 SECRET_KEY}
+      - AGNES_API_KEY=${AGNES_API_KEY:-}
+      - AGNES_BASE_URL=${AGNES_BASE_URL:-https://apihub.agnes-ai.com/v1}
+      - AGNES_MODEL=${AGNES_MODEL:-agnes-2.0-flash}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:8080}
+    volumes:
+      # SQLite / 向量索引 / 上传文件 / 日志 全部落在这里，删除容器不丢数据
+      - ./docker-data:/app/db_data
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: rag-frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+    restart: unless-stopped

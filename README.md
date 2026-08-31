@@ -137,6 +137,25 @@ cd backend
 当前覆盖配置安全基线（SECRET_KEY 启动校验、路径默认值统一），
 测试范围与结果详见 [docs/测试报告.md](docs/测试报告.md)。
 
+## Docker 部署（可选）
+
+不想配本地 Python/Node 环境时，可用 Docker Compose 一键起前后端：
+
+```bash
+cp .env.example .env          # 填写 SECRET_KEY 与 AGNES_API_KEY
+docker compose up -d --build
+```
+
+- 前端：http://localhost:8080（nginx 托管构建产物并反代 `/api`，SSE 流式已适配）
+- 后端：http://localhost:8000/docs
+- 数据（SQLite/向量索引/上传文件/日志）持久化在宿主机 `./docker-data/`
+
+首次启动后初始化示例数据：
+
+```bash
+docker compose exec backend python init_db.py
+```
+
 ## 常见问题
 
 **Q: 如何切换到 PostgreSQL？**

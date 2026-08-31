@@ -8,11 +8,11 @@
 
 # ==================== Python ====================
 backend/.venv/
-backend/__pycache__/
-backend/**/__pycache__/
-backend/*.pyc
-backend/*.pyo
+__pycache__/
+*.py[cod]
 .pytest_cache/
+test-results/  # playwright 失败产物
+.ruff_cache/
 *.egg-info/
 dist/
 build/

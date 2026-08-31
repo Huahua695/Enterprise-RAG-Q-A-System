@@ -47,3 +47,7 @@ htmlcov/
 # ===== AI agent artifacts（本地工具生成，禁止入库） =====
 /.codex/
 /codex.yaml
+
+# ===== 本地安全审计产物（勿入库） =====
+/audit_report_gitee.md
+/git-secret-audit.zip

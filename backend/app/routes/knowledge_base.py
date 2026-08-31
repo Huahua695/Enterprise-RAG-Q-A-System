@@ -80,9 +80,31 @@ async def delete_knowledge_base(
     ).first()
     if not kb:
         raise HTTPException(status_code=404, detail="知识库不存在或无权限")
+
+    kb_id_value = kb.id
+    file_paths = [doc.file_path for doc in kb.documents]
     db.delete(kb)
     db.commit()
-    return {"message": "知识库已删除"}
+    logger.info("知识库已删除：kb=%s owner=%s 文档数=%s", kb_id_value, current_user.id, len(file_paths))
+
+    # 磁盘清理（尽力而为：失败只记日志，不影响删除结果）
+    upload_root = os.path.abspath(settings.UPLOAD_DIR)
+    removed_files = 0
+    for path in file_paths:
+        try:
+            abs_path = os.path.abspath(path)
+            # 只清理上传目录内的文件，防止 DB 数据异常时误删任意路径
+            if abs_path.startswith(upload_root + os.sep) and os.path.exists(abs_path):
+                os.remove(abs_path)
+                removed_files += 1
+        except OSError:
+            logger.warning("上传文件清理失败：%s", path, exc_info=True)
+    try:
+        rag_engine.delete_collection(f"kb_{kb_id_value}")
+    except OSError:
+        logger.warning("知识库 %s 索引目录清理失败", kb_id_value, exc_info=True)
+
+    return {"message": "知识库已删除", "cleaned_files": removed_files}
 
 
 # ==================== 文档管理 ====================
@@ -146,16 +168,35 @@ async def upload_document(
     if not kb:
         raise HTTPException(status_code=404, detail="知识库不存在或无权限")
 
-    # 保存文件
+    # 类型白名单：与 document_parser 支持的解析格式保持一致
+    original_name = file.filename or ""
+    file_ext = os.path.splitext(original_name)[1].lower()
+    file_type = file_ext.lstrip(".")
+    allowed_types = {t.strip().lower() for t in settings.ALLOWED_UPLOAD_TYPES.split(",") if t.strip()}
+    if not file_type or file_type not in allowed_types:
+        raise HTTPException(
+            status_code=400,
+            detail=f"不支持的文件类型: {file_ext or '(无扩展名)'}，允许: {', '.join(sorted(allowed_types))}",
+        )
+
+    # 大小限制：分块读取，超限立即拒绝（避免整文件读入内存）
+    max_bytes = settings.max_upload_size_bytes
+    parts: list[bytes] = []
+    file_size = 0
+    while chunk := await file.read(1024 * 1024):
+        file_size += len(chunk)
+        if file_size > max_bytes:
+            raise HTTPException(status_code=413, detail=f"文件超过大小限制 {settings.MAX_UPLOAD_SIZE}")
+        parts.append(chunk)
+    if file_size == 0:
+        raise HTTPException(status_code=400, detail="不能上传空文件")
+    content = b"".join(parts)
+
+    # 校验全部通过后才落盘
     upload_dir = settings.UPLOAD_DIR
     os.makedirs(upload_dir, exist_ok=True)
-    file_ext = os.path.splitext(file.filename)[1].lower()
-    file_type = file_ext.lstrip(".") or "txt"
-
     unique_filename = f"{uuid.uuid4().hex}{file_ext}"
     file_path = os.path.join(upload_dir, unique_filename)
-
-    content = await file.read()
     with open(file_path, "wb") as f:
         f.write(content)
 
@@ -183,6 +224,7 @@ async def upload_document(
         new_doc.chunk_count = len(chunks)
         new_doc.status = "completed"
         db.commit()
+        logger.info("文档上传并索引成功：doc=%s kb=%s %s（%s 块）", new_doc.id, knowledge_base_id, original_name, len(chunks))
 
         return {
             "message": "文档上传并索引成功",

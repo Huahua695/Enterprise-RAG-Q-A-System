@@ -1,7 +1,11 @@
 ﻿import logging
 import os
+import pickle
+import shutil
 from typing import List, Dict, AsyncGenerator
 
+import faiss
+import numpy as np
 from langchain_openai import ChatOpenAI
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
@@ -64,12 +68,37 @@ class RAGEngine:
     def _load_vectorstore(self, collection_name: str) -> FAISS | None:
         path = self._index_path(collection_name)
         if os.path.exists(os.path.join(path, "index.faiss")):
-            return FAISS.load_local(
-                path,
-                self.embeddings,
-                allow_dangerous_deserialization=True,
-            )
+            return self._read_index(path)
         return None
+
+    # ---------- 索引文件读写（绕开 faiss C++ 文件层的路径限制） ----------
+
+    def _save_index(self, vectorstore: FAISS, path: str) -> None:
+        """落盘索引与 docstore，文件格式与 langchain save_local 完全一致。
+
+        不用 langchain 的 save_local/faiss.write_index：其 C++ 文件层在 Windows
+        上无法写非 ASCII 路径（如 E:\\vibe项目\\...），这里先在内存序列化，
+        再用 Python 文件 IO 落盘；faiss.deserialize_index 可无损读回。
+        """
+        os.makedirs(path, exist_ok=True)
+        index_bytes = faiss.serialize_index(vectorstore.index).tobytes()
+        with open(os.path.join(path, "index.faiss"), "wb") as f:
+            f.write(index_bytes)
+        with open(os.path.join(path, "index.pkl"), "wb") as f:
+            pickle.dump((vectorstore.docstore, vectorstore.index_to_docstore_id), f)
+
+    def _read_index(self, path: str) -> FAISS:
+        """从磁盘读回索引（对应 _save_index / 旧版 save_local 的文件格式）。"""
+        with open(os.path.join(path, "index.faiss"), "rb") as f:
+            index = faiss.deserialize_index(np.frombuffer(f.read(), dtype="uint8"))
+        with open(os.path.join(path, "index.pkl"), "rb") as f:
+            docstore, index_to_docstore_id = pickle.load(f)
+        return FAISS(
+            embedding_function=self.embeddings,
+            index=index,
+            docstore=docstore,
+            index_to_docstore_id=index_to_docstore_id,
+        )
 
     # 单块超过该长度时做二次切分（字符数）
     MAX_CHUNK_SIZE = 1500
@@ -121,7 +150,16 @@ class RAGEngine:
             vectorstore = FAISS.from_texts(texts, self.embeddings)
         else:
             vectorstore.add_texts(texts)
-        vectorstore.save_local(self._index_path(collection_name))
+        self._save_index(vectorstore, self._index_path(collection_name))
+
+    def delete_collection(self, collection_name: str) -> bool:
+        """删除整个知识库的索引目录；目录不存在时返回 False。"""
+        path = self._index_path(collection_name)
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+            logger.info("已删除向量索引目录：%s", path)
+            return True
+        return False
 
     # ---------- 检索 ----------
 

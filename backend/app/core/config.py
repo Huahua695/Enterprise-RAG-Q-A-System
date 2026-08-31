@@ -1,4 +1,7 @@
-﻿from pydantic_settings import BaseSettings
+﻿# -*- coding: utf-8 -*-
+import re
+
+from pydantic_settings import BaseSettings
 from typing import List
 
 
@@ -27,6 +30,8 @@ class Settings(BaseSettings):
     # 文件上传配置
     UPLOAD_DIR: str = "./db_data/uploads"
     MAX_UPLOAD_SIZE: str = "10MB"
+    # 允许上传的扩展名白名单（与 document_parser 支持的解析格式一致）
+    ALLOWED_UPLOAD_TYPES: str = "pdf,docx,txt,md,markdown,xlsx,xls"
 
     # Redis 配置
     REDIS_URL: str = "redis://localhost:6379/0"
@@ -37,6 +42,15 @@ class Settings(BaseSettings):
     @property
     def allowed_origins_list(self) -> List[str]:
         return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def max_upload_size_bytes(self) -> int:
+        """把 '10MB' / '512KB' 这类字符串解析为字节数；解析失败回退 10MB。"""
+        m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*(B|KB|MB|GB)?", self.MAX_UPLOAD_SIZE.strip(), re.IGNORECASE)
+        if not m:
+            return 10 * 1024 * 1024
+        multiplier = {"B": 1, "KB": 1024, "MB": 1024 ** 2, "GB": 1024 ** 3}[(m.group(2) or "B").upper()]
+        return int(float(m.group(1)) * multiplier)
 
     class Config:
         env_file = ".env"

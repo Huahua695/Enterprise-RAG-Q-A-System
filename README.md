@@ -137,6 +137,10 @@ cd backend
 当前覆盖配置安全基线（SECRET_KEY 启动校验、路径默认值统一），
 测试范围与结果详见 [docs/测试报告.md](docs/测试报告.md)。
 
+CI：推送至 master 会触发 [Gitee Go](https://gitee.com/features/gitee-go) 流水线
+自动执行 pytest（配置见 `.workflow/master-pipeline.yml`，首次使用需在仓库
+「流水线」页面启用 Gitee Go）。
+
 ## Docker 部署（可选）
 
 不想配本地 Python/Node 环境时，可用 Docker Compose 一键起前后端：

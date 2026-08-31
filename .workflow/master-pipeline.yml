@@ -1,0 +1,21 @@
+version: '1.0'
+name: master-pipeline
+displayName: 后端测试
+triggers:
+  push:
+    branches:
+      include:
+        - master
+stages:
+  - name: test
+    displayName: 后端单测
+    steps:
+      - step: build@python
+        name: run_pytest
+        displayName: 运行 pytest
+        pythonVersion: '3.12'
+        commands:
+          - python3 -m pip install --upgrade pip
+          - pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+          - pip install -r backend/requirements.txt
+          - cd backend && SECRET_KEY=ci-dummy-secret AGNES_API_KEY=ci-dummy-key python -m pytest -v

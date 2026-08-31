@@ -35,13 +35,36 @@
 
 ## 环境要求
 
-- Python 3.13（项目 venv 已创建于 `backend/.venv`，可直接复用）
-- Node.js 18+（依赖已安装于 `frontend/node_modules`）
+- Python 3.13+
+- Node.js 18+
 - 无需安装 PostgreSQL / Redis / ChromaDB
 
 ## 快速开始
 
-### 1. 初始化数据库（首次或删库后执行）
+### 1. 安装依赖（仅首次需要）
+
+后端：创建虚拟环境、安装依赖，并从模板创建 `.env`：
+
+```bash
+cd backend
+python -m venv .venv
+./.venv/Scripts/pip install -r requirements.txt
+cp .env.example .env
+```
+
+编辑 `backend/.env`，至少填写 `SECRET_KEY`（随机字符串，用于 JWT 签名）和
+`AGNES_API_KEY`（问答功能依赖，获取方式见 `.env.example` 内注释）。
+
+前端：
+
+```bash
+cd frontend
+npm install
+```
+
+> PowerShell 用户请把 `./.venv/Scripts/pip` 写作 `.venv\Scripts\pip`，`cp` 写作 `copy`。
+
+### 2. 初始化数据库（首次或删库后执行）
 
 ```bash
 cd backend
@@ -50,7 +73,7 @@ cd backend
 
 完成三件事：建表 → 创建管理员（admin / 123456）→ 导入示例电商商品并构建向量索引。
 
-### 2. 启动后端
+### 3. 启动后端
 
 ```bash
 cd backend
@@ -59,7 +82,7 @@ cd backend
 
 后端运行在 http://localhost:8000（API 文档：http://localhost:8000/docs）
 
-### 3. 启动前端
+### 4. 启动前端
 
 ```bash
 cd frontend
@@ -86,12 +109,11 @@ RAG/
 │   │   └── services/          # rag_service（FAISS RAG 引擎）
 │   │                          # local_embeddings（本地哈希向量化）
 │   │                          # document_parser（PDF/Word/TXT/Excel 解析）
-│   ├── uploads/               # 上传文件存储
-│   ├── vector_db/             # FAISS 索引持久化（按知识库分目录）
+│   ├── db_data/               # 运行数据（不入库）：SQLite main.db、
+│   │                          # 上传文件 uploads/、FAISS 索引 vector_db/
 │   ├── sample_data/           # 示例电商商品数据
-│   ├── .venv/                 # Python 虚拟环境
-│   ├── rag.db                 # SQLite 数据库文件
-│   ├── .env                   # 环境变量
+│   ├── .venv/                 # Python 虚拟环境（本地创建，不入库）
+│   ├── .env                   # 环境变量（本地创建，不入库）
 │   ├── requirements.txt
 │   ├── init_db.py             # 数据库初始化脚本
 │   └── run.py                 # 启动脚本
@@ -114,11 +136,11 @@ RAG/
 **Q: 如何替换为真实 Embedding 模型？**
 修改 `backend/app/services/rag_service.py` 中 `self.embeddings` 的实例化，
 替换为任意实现 LangChain Embeddings 接口的类（如 `OpenAIEmbeddings`、
-`HuggingFaceBgeEmbeddings`），替换后删除 `vector_db/` 并重新上传文档。
+`HuggingFaceBgeEmbeddings`），替换后删除 `db_data/vector_db/` 并重新上传文档。
 
 **Q: 后端修改代码后没有自动重载？**
 uvicorn 的 watchfiles 在部分中文路径环境下监听不稳定，手动重启 `run.py` 即可。
 
 ## 许可证
 
-MIT License
+本项目基于 [MIT License](LICENSE) 发布。

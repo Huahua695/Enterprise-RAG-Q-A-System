@@ -23,6 +23,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _utcnow_naive() -> datetime:
+    """当前 UTC 时间（naive），与 RevokedToken.expires_at 的 naive UTC 存储约定一致。"""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
 @router.post("/register", response_model=UserInfo)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(
@@ -50,7 +55,7 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 async def login(login_data: UserLogin, request: Request, db: Session = Depends(get_db)):
     client_ip = request.client.host if request.client else "unknown"
     rate_key = f"{login_data.username}|{client_ip}"
-    if login_limiter.is_blocked(rate_key):
+    if login_limiter.is_blocked(db, rate_key):
         logger.warning("登录被限流拒绝：key=%s", rate_key)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -59,7 +64,7 @@ async def login(login_data: UserLogin, request: Request, db: Session = Depends(g
 
     user = db.query(User).filter(User.username == login_data.username).first()
     if not user or not verify_password(login_data.password, user.hashed_password):
-        login_limiter.record_failure(rate_key)
+        login_limiter.record_failure(db, rate_key)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="用户名或密码错误"
@@ -67,7 +72,7 @@ async def login(login_data: UserLogin, request: Request, db: Session = Depends(g
     if not user.is_active:
         raise HTTPException(status_code=400, detail="用户已被禁用")
 
-    login_limiter.reset(rate_key)
+    login_limiter.reset(db, rate_key)
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": str(user.id)},
@@ -92,11 +97,11 @@ async def logout(
     jti = payload.get("jti")
     if jti:
         # 顺手清理已过期的黑名单记录，防止表无限膨胀
-        db.query(RevokedToken).filter(RevokedToken.expires_at < datetime.utcnow()).delete()
+        db.query(RevokedToken).filter(RevokedToken.expires_at < _utcnow_naive()).delete()
         exp = payload.get("exp")
         expires_at = (
             datetime.fromtimestamp(exp, tz=timezone.utc).replace(tzinfo=None)
-            if exp else datetime.utcnow()
+            if exp else _utcnow_naive()
         )
         db.merge(RevokedToken(jti=jti, expires_at=expires_at))
         db.commit()

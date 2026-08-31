@@ -47,13 +47,14 @@
 
 ```bash
 cd backend
-python -m venv .venv
+python -m venv .venv      # 若提示无 python 命令，改用：py -3.13 -m venv .venv
 ./.venv/Scripts/pip install -r requirements.txt
 cp .env.example .env
 ```
 
-编辑 `backend/.env`，至少填写 `SECRET_KEY`（随机字符串，用于 JWT 签名）和
-`AGNES_API_KEY`（问答功能依赖，获取方式见 `.env.example` 内注释）。
+编辑 `backend/.env`，至少填写 `SECRET_KEY`（随机字符串，用于 JWT 签名，
+**未配置时后端将拒绝启动**）和 `AGNES_API_KEY`（问答功能依赖，获取方式见
+`.env.example` 内注释）。
 
 前端：
 
@@ -125,6 +126,16 @@ RAG/
     │   └── styles/            # 暖色调全局样式
     └── vite.config.ts         # 含 /api 代理配置
 ```
+
+## 运行测试
+
+```bash
+cd backend
+./.venv/Scripts/python.exe -m pytest
+```
+
+当前覆盖配置安全基线（SECRET_KEY 启动校验、路径默认值统一），
+测试范围与结果详见 [docs/测试报告.md](docs/测试报告.md)。
 
 ## 常见问题
 

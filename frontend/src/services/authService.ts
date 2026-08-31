@@ -26,6 +26,9 @@ export const authAPI = {
   getMe: () =>
     api.get('/auth/me'),
 
+  logout: () =>
+    api.post('/auth/logout'),
+
   changePassword: (oldPassword: string, newPassword: string) =>
     api.post('/auth/change-password', {
       old_password: oldPassword,

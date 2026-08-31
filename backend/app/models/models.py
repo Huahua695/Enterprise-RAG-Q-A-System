@@ -92,3 +92,13 @@ class Feedback(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     message = relationship("Message")
+
+
+class RevokedToken(Base):
+    """已注销的 JWT（logout 后到原过期时间前的黑名单，过期记录会被顺手清理）"""
+
+    __tablename__ = "revoked_tokens"
+
+    jti = Column(String(64), primary_key=True)
+    expires_at = Column(DateTime, nullable=False)  # naive UTC，与 SQLite 存储约定一致
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

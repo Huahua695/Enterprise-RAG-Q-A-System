@@ -1,5 +1,6 @@
 ﻿import { createContext, useContext, useState, ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
+import { authAPI } from '../services/authService'
 
 interface AuthContextType {
   token: string | null
@@ -22,6 +23,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = () => {
+    // 尽力通知后端吊销当前 token；即使失败（如网络问题）也照常本地登出
+    authAPI.logout().catch(() => {})
     localStorage.removeItem('token')
     localStorage.removeItem('role')
     setToken(null)

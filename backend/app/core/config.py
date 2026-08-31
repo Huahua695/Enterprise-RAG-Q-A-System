@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440
 
+    # 登录限流（单进程内存实现；多 worker / 多实例部署需改用 Redis 等共享存储）
+    LOGIN_RATE_LIMIT_ATTEMPTS: int = 5  # 窗口内允许的连续失败次数
+    LOGIN_RATE_LIMIT_WINDOW_MINUTES: int = 15  # 限流窗口时长
+
     # Agnes AI API 配置
     AGNES_API_KEY: str = ""  # 必须通过 .env 的 AGNES_API_KEY 提供，切勿硬编码
     AGNES_BASE_URL: str = "https://apihub.agnes-ai.com/v1"

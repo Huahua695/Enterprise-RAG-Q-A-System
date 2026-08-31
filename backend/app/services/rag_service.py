@@ -13,7 +13,7 @@ from langchain_core.prompts import PromptTemplate
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.core.config import settings
-from app.services.local_embeddings import LocalHashEmbeddings
+from app.services.embeddings_factory import build_embeddings
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +38,9 @@ class RAGEngine:
     """
 
     def __init__(self):
-        # Agnes API 无 embedding 模型，检索向量化使用本地方案
-        self.embeddings = LocalHashEmbeddings(dim=1024)
+        # 检索向量化：默认本地哈希，可经 EMBEDDING_PROVIDER 切换真实语义模型
+        self.embeddings = build_embeddings()
+        logger.info("Embedding provider=%s model=%s", settings.EMBEDDING_PROVIDER, settings.EMBEDDING_MODEL)
         self.llm = ChatOpenAI(
             api_key=settings.AGNES_API_KEY,
             base_url=settings.AGNES_BASE_URL,

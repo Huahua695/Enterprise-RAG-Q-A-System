@@ -168,9 +168,14 @@ docker compose exec backend python init_db.py
 并 `pip install "psycopg[binary]"`，然后重新执行 `init_db.py`。
 
 **Q: 如何替换为真实 Embedding 模型？**
-修改 `backend/app/services/rag_service.py` 中 `self.embeddings` 的实例化，
-替换为任意实现 LangChain Embeddings 接口的类（如 `OpenAIEmbeddings`、
-`HuggingFaceBgeEmbeddings`），替换后删除 `db_data/vector_db/` 并重新上传文档。
+无需改代码，在 `backend/.env` 切换 `EMBEDDING_PROVIDER` 即可：
+- `fastembed`（推荐）：`pip install fastembed`，默认模型 `bge-small-zh-v1.5`
+  （首次运行自动下载约 90MB；国内建议设 `HF_ENDPOINT=https://hf-mirror.com`
+  和 `HF_HUB_DISABLE_XET=1`）
+- `openai`：接入任意 OpenAI 兼容 `/embeddings` 接口（复用 AGNES 的 Key 与 Base URL）
+
+切换后向量空间改变，必须删除 `db_data/vector_db/` 并执行 `rebuild_index.py`
+（或重新上传文档）。评测检索质量：`python eval_retrieval.py --provider fastembed`。
 
 **Q: 后端修改代码后没有自动重载？**
 uvicorn 的 watchfiles 在部分中文路径环境下监听不稳定，手动重启 `run.py` 即可。

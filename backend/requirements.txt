@@ -25,6 +25,7 @@ requests>=2.32.3
 # psycopg[binary]>=3.2   # PostgreSQL 驱动（切换到 PostgreSQL 时启用）
 # redis>=5.2.0           # 缓存层
 # celery>=5.4.0          # 异步任务队列
+# fastembed>=0.8.0       # 真实语义 Embedding（ONNX 版 bge；EMBEDDING_PROVIDER=fastembed 时启用）
 
 # 开发依赖（运行测试用）
 pytest>=8.0.0

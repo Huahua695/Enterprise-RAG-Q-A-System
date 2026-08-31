@@ -1,0 +1,12 @@
+{"query": "哪款手机支持卫星通话？", "expected": ["Mate 60"]}
+{"query": "苹果的旗舰手机价格是多少？", "expected": ["iPhone"]}
+{"query": "降噪耳机推荐一款", "expected": ["WH-1000XM5", "索尼"]}
+{"query": "有没有能清理地毯深层灰尘的无线吸尘器？", "expected": ["戴森", "Dyson"]}
+{"query": "哪款手机拍照有徕卡加持？", "expected": ["小米 14"]}
+{"query": "想买一部不用实名登记的小型无人机", "expected": ["Mini 4"]}
+{"query": "耳机续航最长能到多少小时？", "expected": ["WH-1000XM5", "索尼"]}
+{"query": "游泳时怕手机进水，哪款防水最强？", "expected": ["iPhone", "Mate"]}
+{"query": "支持卫星通话和鸿蒙生态的手机", "expected": ["Mate 60"]}
+{"query": "一英寸大底主摄的手机是哪款？", "expected": ["小米 14"]}
+{"query": "出差开会，耳机要能同时连电脑和手机", "expected": ["WH-1000XM5", "索尼"]}
+{"query": "哪款无人机能自动避开障碍物？", "expected": ["Mini 4"]}

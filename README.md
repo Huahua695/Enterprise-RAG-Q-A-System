@@ -38,6 +38,9 @@
 - Python 3.13+
 - Node.js 18+
 - 无需安装 PostgreSQL / Redis / ChromaDB
+- 首次启动会自动下载语义模型 `bge-small-zh-v1.5`（约 90MB，缓存于
+  `backend/db_data/models/`）；国内下载可设置 `HF_ENDPOINT=https://hf-mirror.com`
+  与 `HF_HUB_DISABLE_XET=1`
 
 ## 快速开始
 
@@ -167,15 +170,16 @@ docker compose exec backend python init_db.py
 `postgresql://postgres:密码@localhost:5432/rag_knowledge_base`，
 并 `pip install "psycopg[binary]"`，然后重新执行 `init_db.py`。
 
-**Q: 如何替换为真实 Embedding 模型？**
-无需改代码，在 `backend/.env` 切换 `EMBEDDING_PROVIDER` 即可：
-- `fastembed`（推荐）：`pip install fastembed`，默认模型 `bge-small-zh-v1.5`
-  （首次运行自动下载约 90MB；国内建议设 `HF_ENDPOINT=https://hf-mirror.com`
-  和 `HF_HUB_DISABLE_XET=1`）
-- `openai`：接入任意 OpenAI 兼容 `/embeddings` 接口（复用 AGNES 的 Key 与 Base URL）
+**Q: 如何更换 Embedding 模型？**
+默认使用 `fastembed` 本地推理的 `BAAI/bge-small-zh-v1.5`（语义模型，MRR@5 0.896，
+对比本地哈希方案 0.743，见 `docs/测试报告.md`）。在 `backend/.env` 可切换：
+- `EMBEDDING_PROVIDER=local`：零依赖哈希向量化（离线、无需下载模型）
+- `EMBEDDING_PROVIDER=openai`：接入任意 OpenAI 兼容 `/embeddings` 接口
+  （复用 AGNES 的 Key 与 Base URL），`EMBEDDING_MODEL` 填接口模型名
 
-切换后向量空间改变，必须删除 `db_data/vector_db/` 并执行 `rebuild_index.py`
-（或重新上传文档）。评测检索质量：`python eval_retrieval.py --provider fastembed`。
+任何切换都会改变向量空间，必须删除 `db_data/vector_db/` 并执行
+`rebuild_index.py`（或重新上传文档）。评测检索质量：
+`python eval_retrieval.py --provider fastembed|local|openai`。
 
 **Q: 后端修改代码后没有自动重载？**
 uvicorn 的 watchfiles 在部分中文路径环境下监听不稳定，手动重启 `run.py` 即可。

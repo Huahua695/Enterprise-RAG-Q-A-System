@@ -25,7 +25,11 @@ def build_embeddings():
     if provider == "fastembed":
         from langchain_community.embeddings import FastEmbedEmbeddings
 
-        return FastEmbedEmbeddings(model_name=settings.EMBEDDING_MODEL)
+        # 模型缓存显式放 db_data（随 Docker 卷持久化），避免落 Temp 被系统清理
+        return FastEmbedEmbeddings(
+            model_name=settings.EMBEDDING_MODEL,
+            cache_dir=settings.EMBEDDING_CACHE_DIR,
+        )
     if provider == "openai":
         from langchain_openai import OpenAIEmbeddings
 

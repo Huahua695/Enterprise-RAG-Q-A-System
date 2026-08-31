@@ -8,6 +8,11 @@ services:
       - AGNES_API_KEY=${AGNES_API_KEY:-}
       - AGNES_BASE_URL=${AGNES_BASE_URL:-https://apihub.agnes-ai.com/v1}
       - AGNES_MODEL=${AGNES_MODEL:-agnes-2.0-flash}
+      - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-fastembed}
+      - EMBEDDING_CACHE_DIR=/app/db_data/models
+      # 模型下载走国内镜像（首次启动下载约 90MB）
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
+      - HF_HUB_DISABLE_XET=1
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:8080}
     volumes:

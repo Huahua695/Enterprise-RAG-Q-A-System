@@ -18,4 +18,5 @@ stages:
           - python3 -m pip install --upgrade pip
           - pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
           - pip install -r backend/requirements.txt
-          - cd backend && SECRET_KEY=ci-dummy-secret AGNES_API_KEY=ci-dummy-key python -m pytest -v
+          # EMBEDDING_PROVIDER=local：CI 内不下载语义模型，保持测试封闭（默认值为 fastembed 由单测断言）
+          - cd backend && EMBEDDING_PROVIDER=local SECRET_KEY=ci-dummy-secret AGNES_API_KEY=ci-dummy-key python -m pytest -v

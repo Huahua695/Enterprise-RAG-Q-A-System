@@ -28,9 +28,10 @@ class Settings(BaseSettings):
     VECTOR_STORE_DIR: str = "./db_data/vector_db"
 
     # Embedding 配置（切换 provider/模型后必须重建向量索引，见 embeddings_factory 文档）
-    EMBEDDING_PROVIDER: str = "local"  # local / fastembed / openai
+    EMBEDDING_PROVIDER: str = "fastembed"  # fastembed（默认，真实语义）/ local（哈希）/ openai
     EMBEDDING_MODEL: str = "BAAI/bge-small-zh-v1.5"  # fastembed 模型；openai 模式下为接口模型名
     EMBEDDING_DIM: int = 1024  # 仅 local 哈希方案使用
+    EMBEDDING_CACHE_DIR: str = "./db_data/models"  # 语义模型缓存（首次运行自动下载约 90MB）
 
     # 日志配置
     LOG_LEVEL: str = "INFO"  # DEBUG / INFO / WARNING / ERROR

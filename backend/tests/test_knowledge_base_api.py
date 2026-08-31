@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""上传安全与删除清理测试：类型白名单、大小限制、删除知识库时的磁盘清理。"""
+"""上传安全与删除清理测试：类型白名单、大小限制、后台向量化状态流转、删除清理。"""
 import io
 import os
 
@@ -9,10 +9,11 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+import app.services.document_processor as document_processor
 from app.core.config import settings
 from app.core.database import Base, get_db
 from app.core.security import get_current_user
-from app.models.models import KnowledgeBase as KBModel
+from app.models.models import Document as DocumentModel, KnowledgeBase as KBModel
 from app.routes.knowledge_base import router
 
 
@@ -34,6 +35,8 @@ def client(tmp_path, monkeypatch):
     vector_dir = tmp_path / "vector_db"
     monkeypatch.setattr(settings, "UPLOAD_DIR", str(upload_dir))
     monkeypatch.setattr(settings, "VECTOR_STORE_DIR", str(vector_dir))
+    # 后台任务自建会话，指向测试库而非真实 main.db
+    monkeypatch.setattr(document_processor, "SessionLocal", TestingSession)
 
     test_app = FastAPI()
     test_app.include_router(router)
@@ -55,6 +58,7 @@ def client(tmp_path, monkeypatch):
     with TestClient(test_app) as c:
         c.upload_dir = upload_dir
         c.vector_dir = vector_dir
+        c.db_session_factory = TestingSession
         yield c
 
 
@@ -71,11 +75,30 @@ def _upload(client, name: str, payload: bytes, mime: str = "application/octet-st
     )
 
 
+def _get_doc(client, doc_id: int) -> DocumentModel:
+    with client.db_session_factory() as db:
+        return db.get(DocumentModel, doc_id)
+
+
 def test_upload_txt_ok(client):
     resp = _upload(client, "商品.txt", "## 商品A\n性价比很高".encode("utf-8"), "text/plain")
     assert resp.status_code == 200, resp.text
-    assert resp.json()["chunks"] >= 1
+    assert resp.json()["status"] == "processing"
     assert len(_listdir(client.upload_dir)) == 1
+    # TestClient 下 BackgroundTasks 在响应返回前执行完 → 状态已流转为 completed
+    doc = _get_doc(client, resp.json()["document_id"])
+    assert doc.status == "completed"
+    assert doc.chunk_count >= 1
+    assert "商品A" in doc.content
+
+
+def test_upload_bad_file_marks_failed(client):
+    """解析失败的文档：接口正常接收，后台任务把状态置为 failed 并记录原因。"""
+    resp = _upload(client, "broken.pdf", b"not-a-real-pdf", "application/pdf")
+    assert resp.status_code == 200, resp.text
+    doc = _get_doc(client, resp.json()["document_id"])
+    assert doc.status == "failed"
+    assert doc.error_message
 
 
 def test_upload_rejects_disallowed_type(client):

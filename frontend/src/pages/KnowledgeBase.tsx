@@ -1,11 +1,18 @@
 ﻿import { useState, useEffect } from 'react'
-import { Layout, Table, Button, Modal, Form, Input, Upload, message, Typography, Spin } from 'antd'
+import { Layout, Table, Button, Modal, Form, Input, Upload, message, Typography, Spin, Tag, Tooltip } from 'antd'
 import { PlusOutlined, DeleteOutlined, InboxOutlined, BookOutlined, FileTextOutlined } from '@ant-design/icons'
 import { chatAPI } from '../services/chatService'
 
 const { Title } = Typography
 const { Dragger } = Upload
 const { Content } = Layout
+
+const STATUS_META: Record<string, { label: string; color: string }> = {
+  pending: { label: '待处理', color: 'default' },
+  processing: { label: '处理中', color: 'processing' },
+  completed: { label: '已完成', color: 'success' },
+  failed: { label: '失败', color: 'error' },
+}
 
 export default function KnowledgeBase() {
   const [kbs, setKbs] = useState<any[]>([])
@@ -25,6 +32,15 @@ export default function KnowledgeBase() {
       loadDocuments()
     }
   }, [selectedKB])
+
+  // 存在处理中/待处理的文档时每 2s 轮询刷新，全部完成或失败后自动停止
+  useEffect(() => {
+    if (selectedKB === null) return
+    const hasProcessing = docs.some(d => d.status === 'processing' || d.status === 'pending')
+    if (!hasProcessing) return
+    const timer = setInterval(loadDocuments, 2000)
+    return () => clearInterval(timer)
+  }, [docs, selectedKB])
 
   const loadKnowledgeBases = async () => {
     try {
@@ -75,7 +91,7 @@ export default function KnowledgeBase() {
     setUploading(true)
     try {
       await chatAPI.uploadDocument(selectedKB, file)
-      message.success('文档上传成功，正在处理...')
+      message.success('文档已上传，后台向量化中...')
       loadDocuments()
       return false
     } catch {
@@ -128,7 +144,18 @@ export default function KnowledgeBase() {
     { title: '文件名', dataIndex: 'filename', key: 'filename' },
     { title: '类型', dataIndex: 'file_type', key: 'file_type' },
     { title: '分块数', dataIndex: 'chunk_count', key: 'chunk_count' },
-    { title: '状态', dataIndex: 'status', key: 'status' },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status: string, record: any) => {
+        const meta = STATUS_META[status] || { label: status, color: 'default' }
+        const tag = <Tag color={meta.color}>{meta.label}</Tag>
+        return status === 'failed' && record.error_message ? (
+          <Tooltip title={record.error_message}>{tag}</Tooltip>
+        ) : tag
+      },
+    },
     {
       title: '操作',
       key: 'action',

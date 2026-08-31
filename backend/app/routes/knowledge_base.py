@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+﻿from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import Optional, List
 import logging
@@ -11,6 +11,7 @@ from app.schemas.chat import DocumentInfo, KnowledgeBaseCreate, KnowledgeBaseInf
 from app.core.security import get_current_user
 from app.services.rag_service import rag_engine
 from app.services.document_parser import parse_document
+from app.services.document_processor import process_document
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -155,6 +156,7 @@ async def get_document_content(
 
 @router.post("/documents/upload")
 async def upload_document(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     knowledge_base_id: int = Form(...),
     current_user: User = Depends(get_current_user),
@@ -214,26 +216,11 @@ async def upload_document(
     db.commit()
     db.refresh(new_doc)
 
-    # 解析文档并构建向量索引（同步处理，后续可改为 Celery 异步）
-    try:
-        text = parse_document(file_path, file_type)
-        chunks = rag_engine.split_document(text)
-        rag_engine.add_documents(chunks, collection_name=f"kb_{knowledge_base_id}")
-
-        new_doc.content = text  # 保存解析文本，前端可预览
-        new_doc.chunk_count = len(chunks)
-        new_doc.status = "completed"
-        db.commit()
-        logger.info("文档上传并索引成功：doc=%s kb=%s %s（%s 块）", new_doc.id, knowledge_base_id, original_name, len(chunks))
-
-        return {
-            "message": "文档上传并索引成功",
-            "document_id": new_doc.id,
-            "chunks": len(chunks)
-        }
-    except Exception as e:
-        logger.exception("文档处理失败：doc=%s kb=%s", new_doc.id, knowledge_base_id)
-        new_doc.status = "failed"
-        new_doc.error_message = str(e)
-        db.commit()
-        raise HTTPException(status_code=500, detail=f"文档处理失败: {str(e)}")
+    # 解析与向量化交给后台任务，接口立即返回，前端按 status 轮询
+    background_tasks.add_task(process_document, new_doc.id, knowledge_base_id, file_path, file_type)
+    logger.info("文档已接收，后台向量化中：doc=%s kb=%s %s", new_doc.id, knowledge_base_id, original_name)
+    return {
+        "message": "文档已接收，后台处理中",
+        "document_id": new_doc.id,
+        "status": "processing",
+    }

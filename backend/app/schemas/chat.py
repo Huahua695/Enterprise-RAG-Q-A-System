@@ -17,6 +17,7 @@ class DocumentInfo(BaseModel):
     file_size: int
     chunk_count: int
     status: str
+    error_message: Optional[str] = None
     knowledge_base_id: int
     uploaded_by: int
     created_at: datetime

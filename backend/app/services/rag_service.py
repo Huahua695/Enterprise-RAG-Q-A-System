@@ -2,6 +2,7 @@
 import os
 import pickle
 import shutil
+import threading
 from typing import List, Dict, AsyncGenerator
 
 import faiss
@@ -38,6 +39,8 @@ class RAGEngine:
     """
 
     def __init__(self):
+        # 向量化改为后台任务后，同一索引可能被并发读写，全部索引操作串行化
+        self._index_lock = threading.Lock()
         # 检索向量化：默认本地哈希，可经 EMBEDDING_PROVIDER 切换真实语义模型
         self.embeddings = build_embeddings()
         logger.info("Embedding provider=%s model=%s", settings.EMBEDDING_PROVIDER, settings.EMBEDDING_MODEL)
@@ -146,21 +149,23 @@ class RAGEngine:
     def add_documents(self, texts: List[str], collection_name: str = "default") -> None:
         if not texts:
             return
-        vectorstore = self._load_vectorstore(collection_name)
-        if vectorstore is None:
-            vectorstore = FAISS.from_texts(texts, self.embeddings)
-        else:
-            vectorstore.add_texts(texts)
-        self._save_index(vectorstore, self._index_path(collection_name))
+        with self._index_lock:
+            vectorstore = self._load_vectorstore(collection_name)
+            if vectorstore is None:
+                vectorstore = FAISS.from_texts(texts, self.embeddings)
+            else:
+                vectorstore.add_texts(texts)
+            self._save_index(vectorstore, self._index_path(collection_name))
 
     def delete_collection(self, collection_name: str) -> bool:
         """删除整个知识库的索引目录；目录不存在时返回 False。"""
         path = self._index_path(collection_name)
-        if os.path.isdir(path):
-            shutil.rmtree(path)
-            logger.info("已删除向量索引目录：%s", path)
-            return True
-        return False
+        with self._index_lock:
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+                logger.info("已删除向量索引目录：%s", path)
+                return True
+            return False
 
     # ---------- 检索 ----------
 

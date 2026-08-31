@@ -1,9 +1,11 @@
 ﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.core.config import settings
+from app.core.config import ensure_secret_key, settings
 from app.core.database import engine, Base
 from app.models import models  # noqa: F401  确保所有表注册到 metadata 后再建表
 
+
+ensure_secret_key()  # 缺少 SECRET_KEY 时快速失败，拒绝启动
 
 Base.metadata.create_all(bind=engine)
 

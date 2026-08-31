@@ -40,3 +40,17 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+
+def ensure_secret_key() -> None:
+    """启动校验：SECRET_KEY 必须显式配置。
+
+    空密钥下 python-jose 仍可正常签发/校验 JWT（实测），服务不会报错，
+    但任何人都能伪造任意用户的 token。因此只在 Web 入口（main.py）调用，
+    离线脚本（init_db / rebuild_index）不调用，避免阻碍无 .env 的初始化流程。
+    """
+    if not settings.SECRET_KEY:
+        raise RuntimeError(
+            "SECRET_KEY 未配置：请复制 backend/.env.example 为 backend/.env 并填写 SECRET_KEY"
+            "（可用 python -c \"import secrets; print(secrets.token_hex(32))\" 生成）"
+        )

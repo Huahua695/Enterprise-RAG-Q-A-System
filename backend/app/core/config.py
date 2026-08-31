@@ -18,10 +18,10 @@ class Settings(BaseSettings):
     AGNES_EMBEDDING_MODEL: str = "text-embedding-3-small"
 
     # 向量库配置（FAISS 本地持久化目录）
-    VECTOR_STORE_DIR: str = "./vector_db"
+    VECTOR_STORE_DIR: str = "./db_data/vector_db"
 
     # 文件上传配置
-    UPLOAD_DIR: str = "./uploads"
+    UPLOAD_DIR: str = "./db_data/uploads"
     MAX_UPLOAD_SIZE: str = "10MB"
 
     # Redis 配置

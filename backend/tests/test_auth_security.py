@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""认证安全测试：token jti 与 logout 吊销、登录限流。"""
+"""认证安全测试：token jti 与 logout 吊销、登录限流（持久化到 SQLite）。"""
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -9,9 +9,9 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 from app.core.database import Base, get_db
-from app.core.rate_limit import LoginRateLimiter, login_limiter
+from app.core.rate_limit import LoginRateLimiter
 from app.core.security import get_password_hash
-from app.models.models import User
+from app.models.models import LoginFailure, User
 from app.routes.auth import router as auth_router
 
 
@@ -40,8 +40,8 @@ def client(tmp_path):
         db.add(User(username="alice", hashed_password=get_password_hash("correct-password"), role="user"))
         db.commit()
 
-    login_limiter.clear()
     with TestClient(test_app) as c:
+        c.db_session_factory = TestingSession
         yield c
 
 
@@ -73,6 +73,17 @@ def test_login_rate_limit_blocks_after_failures(client):
     assert _login(client).status_code == 429
 
 
+def test_rate_limit_state_persisted_in_db(client):
+    """失败计数落库：跨请求、跨进程重启可见（同一条 DB 记录）。"""
+    for _ in range(3):
+        assert _login(client, password="wrong-password").status_code == 401
+    with client.db_session_factory() as db:
+        row = db.get(LoginFailure, "alice|testclient")
+    assert row is not None
+    assert row.failure_count == 3
+    assert row.locked_until is None
+
+
 def test_rate_limiter_resets_on_success(client):
     assert _login(client, password="wrong-password").status_code == 401
     assert _login(client).status_code == 200  # 成功登录清零计数
@@ -84,6 +95,10 @@ def test_rate_limiter_resets_on_success(client):
 
 
 def test_rate_limiter_window_expiry():
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False})
+    TestingSession = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    Base.metadata.create_all(bind=engine)
     limiter = LoginRateLimiter(max_attempts=1, window_seconds=0)
-    limiter.record_failure("k")
-    assert not limiter.is_blocked("k")  # 窗口为 0，记录立即过期
+    with TestingSession() as db:
+        limiter.record_failure(db, "k")
+        assert not limiter.is_blocked(db, "k")  # 窗口为 0，记录立即过期

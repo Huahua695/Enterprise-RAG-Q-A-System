@@ -102,3 +102,18 @@ class RevokedToken(Base):
     jti = Column(String(64), primary_key=True)
     expires_at = Column(DateTime, nullable=False)  # naive UTC，与 SQLite 存储约定一致
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class LoginFailure(Base):
+    """登录失败计数（限流），持久化到 DB：重启不丢、多 worker 共享。
+
+    key 为 "username|ip"；窗口起点为首次失败时间（naive UTC），达到阈值后
+    锁定至窗口结束，到期记录在下次访问时惰性清理。
+    """
+
+    __tablename__ = "login_failures"
+
+    key = Column(String(200), primary_key=True)
+    failure_count = Column(Integer, nullable=False, default=0)
+    first_failure_at = Column(DateTime, nullable=False)  # naive UTC 窗口起点
+    locked_until = Column(DateTime, nullable=True)  # naive UTC 锁定截止

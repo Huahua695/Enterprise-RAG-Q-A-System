@@ -19,11 +19,13 @@
 - **Vite** - 构建工具
 
 ### AI 服务
-- **Agnes AI API（agnes-2.0-flash）** - 大语言模型，负责答案生成（流式）
+- **任意 OpenAI 兼容大模型接口** - 大语言模型，负责答案生成（流式）。
+  经 `backend/.env` 的 `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL` 三项配置接入
+  DeepSeek / 通义千问 / Ollama / one-api 等任意兼容服务
 - **本地哈希 Embedding（jieba 分词 + MD5 hashing trick）** - 检索向量化
 
-> 说明：Agnes API 仅提供对话/图像/视频模型，无 embedding 模型，
-> 因此检索向量化采用本地方案（`backend/app/services/local_embeddings.py`）。
+> 说明：不少 OpenAI 兼容对话网关不提供 embedding 模型，
+> 因此检索向量化默认采用本地方案（`backend/app/services/local_embeddings.py`）。
 > 该模块实现了 LangChain Embeddings 接口，可随时替换为 bge / OpenAI 等真实模型。
 
 ## 功能特性
@@ -56,8 +58,8 @@ cp .env.example .env
 ```
 
 编辑 `backend/.env`，至少填写 `SECRET_KEY`（随机字符串，用于 JWT 签名，
-**未配置时后端将拒绝启动**）和 `AGNES_API_KEY`（问答功能依赖，获取方式见
-`.env.example` 内注释）。
+**未配置时后端将拒绝启动**），以及 `LLM_API_KEY` 与 `LLM_MODEL`（问答功能依赖，
+任意 OpenAI 兼容接口，第三方网关示例见 `.env.example` 内注释）。
 
 前端：
 
@@ -155,7 +157,7 @@ cd e2e
 ```
 
 覆盖登录成败流、建知识库 → 上传文档 → 等待后台向量化完成 → 流式问答 →
-断言答案与引用来源。问答用例依赖 `AGNES_API_KEY`，未配置时自动跳过；
+断言答案与引用来源。问答用例依赖 `LLM_API_KEY`，未配置时自动跳过；
 前后端服务未启动或默认账户不可用时整组自动跳过（不误报失败）。
 
 CI：推送至 master 会触发 [Gitee Go](https://gitee.com/features/gitee-go) 流水线
@@ -167,7 +169,7 @@ CI：推送至 master 会触发 [Gitee Go](https://gitee.com/features/gitee-go) 
 不想配本地 Python/Node 环境时，可用 Docker Compose 一键起前后端：
 
 ```bash
-cp .env.example .env          # 填写 SECRET_KEY 与 AGNES_API_KEY
+cp .env.example .env          # 填写 SECRET_KEY 与 LLM_API_KEY/LLM_MODEL
 docker compose up -d --build
 ```
 
@@ -193,7 +195,7 @@ docker compose exec backend python init_db.py
 对比本地哈希方案 0.743，见 `docs/测试报告.md`）。在 `backend/.env` 可切换：
 - `EMBEDDING_PROVIDER=local`：零依赖哈希向量化（离线、无需下载模型）
 - `EMBEDDING_PROVIDER=openai`：接入任意 OpenAI 兼容 `/embeddings` 接口
-  （复用 AGNES 的 Key 与 Base URL），`EMBEDDING_MODEL` 填接口模型名
+  （复用 LLM_API_KEY 与 LLM_BASE_URL），`EMBEDDING_MODEL` 填接口模型名
 
 任何切换都会改变向量空间，必须删除 `db_data/vector_db/` 并执行
 `rebuild_index.py`（或重新上传文档）。评测检索质量：

@@ -46,15 +46,15 @@ def admin_headers(base_url):
 
 @pytest.fixture(scope="session")
 def llm_ready():
-    """问答链路依赖外部 LLM（AGNES_API_KEY），未配置时跳过问答用例。"""
-    if os.environ.get("AGNES_API_KEY"):
+    """问答链路依赖外部 LLM（LLM_API_KEY），未配置时跳过问答用例。"""
+    if os.environ.get("LLM_API_KEY"):
         return
     env_path = pathlib.Path(__file__).parent.parent / "backend" / ".env"
     if env_path.exists():
         for line in env_path.read_text(encoding="utf-8", errors="ignore").splitlines():
-            if line.strip().startswith("AGNES_API_KEY=") and line.split("=", 1)[1].strip():
+            if line.strip().startswith("LLM_API_KEY=") and line.split("=", 1)[1].strip():
                 return
-    pytest.skip("未配置 AGNES_API_KEY，跳过依赖大模型问答的用例")
+    pytest.skip("未配置 LLM_API_KEY，跳过依赖大模型问答的用例")
 
 
 @pytest.fixture(scope="session")

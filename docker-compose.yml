@@ -5,9 +5,9 @@ services:
     environment:
       # 必填：缺失时后端启动校验会拒绝（compose 会直接报错提示）
       - SECRET_KEY=${SECRET_KEY:?请在项目根目录 .env 中设置 SECRET_KEY}
-      - AGNES_API_KEY=${AGNES_API_KEY:-}
-      - AGNES_BASE_URL=${AGNES_BASE_URL:-https://apihub.agnes-ai.com/v1}
-      - AGNES_MODEL=${AGNES_MODEL:-agnes-2.0-flash}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_BASE_URL=${LLM_BASE_URL:-}
+      - LLM_MODEL=${LLM_MODEL:-}
       - EMBEDDING_PROVIDER=${EMBEDDING_PROVIDER:-fastembed}
       - EMBEDDING_CACHE_DIR=/app/db_data/models
       # 模型下载走国内镜像（首次启动下载约 90MB）

@@ -34,7 +34,7 @@ def test_main_refuses_to_boot_without_secret_key():
     """集成：SECRET_KEY 为空时，uvicorn 加载 app.main 必须直接失败。"""
     env = os.environ.copy()
     env["SECRET_KEY"] = ""
-    env["AGNES_API_KEY"] = "dummy-key-for-test"  # 隔离本机 .env，排除无关报错
+    env["LLM_API_KEY"] = "dummy-key-for-test"  # 隔离本机 .env，排除无关报错
     result = subprocess.run(
         [sys.executable, "-c", "import app.main"],
         cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__))),

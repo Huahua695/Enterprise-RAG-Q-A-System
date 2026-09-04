@@ -2,6 +2,22 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 格式记录显著变更。
 
+## [2026-09-04] LLM 集成通用化（移除 AgnesAI 专属配置）
+
+### Changed（变更）
+
+- **LLM 配置通用化**：`AGNES_API_KEY` / `AGNES_BASE_URL` / `AGNES_MODEL` 重命名为
+  `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL`，代码不再内置任何厂商默认值；
+  任意 OpenAI 兼容服务（DeepSeek / 通义千问 / Ollama / one-api 等）改
+  `backend/.env` 即可接入（⚠️ 破坏性：旧配置名不再读取，需同步改名）。
+  原 `AGNES_EMBEDDING_MODEL` 无实际使用处，直接移除。
+- `ChatOpenAI` 客户端改为首次问答时惰性构建：未配置 LLM 时后端照常启动
+  （上传/检索不受影响），问答接口经 SSE error 事件返回明确的配置指引。
+- `EMBEDDING_PROVIDER=openai` 改复用 `LLM_API_KEY` / `LLM_BASE_URL`，
+  未配置时构建即报错并给出指引。
+- `.env.example`（根目录与 backend/）、`docker-compose.yml`、README、
+  e2e 夹具、CI 流水线同步更新。
+
 ## [2026-08-31] 测试反馈改进轮
 
 依据 `docs/改进建议.md`（测试工程师 4 项反馈）完成的改进，改动前基线 27 个测试全绿。
@@ -15,7 +31,7 @@
 - **登录限流持久化**：新增 `login_failures` 表，`LoginRateLimiter` 从进程内存迁移到 SQLite——
   重启不丢、多 worker 共享；窗口起点为首次失败时间，达阈值锁定至窗口结束，过期记录惰性清理。
 - **Playwright 端到端测试**（`e2e/`）：登录成功/失败流、建知识库→上传文档→等待后台向量化完成→
-  流式问答→断言答案与引用来源；服务未启动或未配置 AGNES_API_KEY 时自动跳过。
+  流式问答→断言答案与引用来源；服务未启动或未配置 LLM_API_KEY 时自动跳过。
 - **文档状态接口字段**：`DocumentInfo` 补充 `error_message`，前端可展示失败原因。
 - 新增测试：限流计数落库断言、后台任务 completed/failed 状态流转（`tests/test_document_processor.py`）。
 

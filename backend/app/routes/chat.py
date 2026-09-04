@@ -10,7 +10,7 @@ from app.core.database import get_db, SessionLocal
 from app.models.models import User, Session as SessionModel, Message, KnowledgeBase as KBModel
 from app.schemas.chat import ChatRequest, ChatResponse, SessionCreate, SessionInfo, MessageInfo
 from app.core.security import get_current_user
-from app.services.rag_service import rag_engine
+from app.services.rag_service import rag_engine, LLMNotConfiguredError
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +155,10 @@ async def send_question(
                 yield _sse({"type": "answer", "content": chunk})
 
             yield _sse({"type": "done"})
+        except LLMNotConfiguredError as exc:
+            # 配置缺失属于可自助修复的问题，把具体指引透传给前端展示
+            logger.warning("问答失败：LLM 未配置。session=%s user=%s", session_id, user_id)
+            yield _sse({"type": "error", "message": str(exc)})
         except Exception:
             # 原始异常只进日志，不透传给前端（避免泄漏内部实现细节）
             logger.exception("问答生成失败：session=%s user=%s", session_id, user_id)

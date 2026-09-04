@@ -19,6 +19,10 @@ from app.services.embeddings_factory import build_embeddings
 logger = logging.getLogger(__name__)
 
 
+class LLMNotConfiguredError(RuntimeError):
+    """LLM 接口未配置（LLM_API_KEY / LLM_MODEL 为空）时抛出，携带可操作的配置指引。"""
+
+
 PROMPT_TEMPLATE = """你是一个知识库问答助手。请根据以下知识库内容回答用户的问题。
 
 知识库内容：
@@ -44,13 +48,9 @@ class RAGEngine:
         # 检索向量化：默认本地哈希，可经 EMBEDDING_PROVIDER 切换真实语义模型
         self.embeddings = build_embeddings()
         logger.info("Embedding provider=%s model=%s", settings.EMBEDDING_PROVIDER, settings.EMBEDDING_MODEL)
-        self.llm = ChatOpenAI(
-            api_key=settings.AGNES_API_KEY,
-            base_url=settings.AGNES_BASE_URL,
-            model=settings.AGNES_MODEL,
-            temperature=0,
-            streaming=True,
-        )
+        # LLM 客户端惰性构建：未配置 LLM_API_KEY/LLM_MODEL 时后端仍可正常启动
+        # （上传/检索不受影响），首次问答时才实例化并给出明确配置提示
+        self._llm: ChatOpenAI | None = None
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=500,
             chunk_overlap=50,
@@ -61,6 +61,30 @@ class RAGEngine:
             template=PROMPT_TEMPLATE,
         )
         os.makedirs(settings.VECTOR_STORE_DIR, exist_ok=True)
+
+    @property
+    def llm(self) -> ChatOpenAI:
+        if self._llm is None:
+            if not settings.LLM_MODEL or not settings.LLM_API_KEY:
+                missing = [
+                    name for name, val in (
+                        ("LLM_API_KEY", settings.LLM_API_KEY),
+                        ("LLM_MODEL", settings.LLM_MODEL),
+                    ) if not val
+                ]
+                raise LLMNotConfiguredError(
+                    f"LLM 接口未配置：请在 backend/.env 中设置 {' 和 '.join(missing)}"
+                    "（任意 OpenAI 兼容接口；第三方网关另按需设置 LLM_BASE_URL，"
+                    "无需鉴权的本地服务可将 LLM_API_KEY 填任意占位值）"
+                )
+            self._llm = ChatOpenAI(
+                api_key=settings.LLM_API_KEY,
+                base_url=settings.LLM_BASE_URL or None,
+                model=settings.LLM_MODEL,
+                temperature=0,
+                streaming=True,
+            )
+        return self._llm
 
     # ---------- 向量索引管理 ----------
 

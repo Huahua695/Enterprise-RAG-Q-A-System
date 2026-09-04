@@ -18,11 +18,10 @@ class Settings(BaseSettings):
     LOGIN_RATE_LIMIT_ATTEMPTS: int = 5  # 窗口内允许的连续失败次数
     LOGIN_RATE_LIMIT_WINDOW_MINUTES: int = 15  # 限流窗口时长
 
-    # Agnes AI API 配置
-    AGNES_API_KEY: str = ""  # 必须通过 .env 的 AGNES_API_KEY 提供，切勿硬编码
-    AGNES_BASE_URL: str = "https://apihub.agnes-ai.com/v1"
-    AGNES_MODEL: str = "agnes-2.0-flash"
-    AGNES_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    # LLM API 配置（任意 OpenAI 兼容接口：DeepSeek / 通义千问 / Ollama / one-api 等）
+    LLM_API_KEY: str = ""  # 必须通过 .env 的 LLM_API_KEY 提供，切勿硬编码
+    LLM_BASE_URL: str = ""  # 留空走 OpenAI 官方接口；第三方网关一般填到 /v1 一级
+    LLM_MODEL: str = ""  # 留空时问答接口会返回明确的配置提示
 
     # 向量库配置（FAISS 本地持久化目录）
     VECTOR_STORE_DIR: str = "./db_data/vector_db"

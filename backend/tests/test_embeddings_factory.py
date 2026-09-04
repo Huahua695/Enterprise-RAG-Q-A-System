@@ -46,7 +46,7 @@ def test_openai_provider(monkeypatch):
     from langchain_openai import OpenAIEmbeddings
 
     monkeypatch.setattr(settings, "EMBEDDING_PROVIDER", "openai")
-    monkeypatch.setattr(settings, "AGNES_API_KEY", "dummy-key")
+    monkeypatch.setattr(settings, "LLM_API_KEY", "dummy-key")
     assert isinstance(build_embeddings(), OpenAIEmbeddings)
 
 

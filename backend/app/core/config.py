@@ -18,10 +18,12 @@ class Settings(BaseSettings):
     LOGIN_RATE_LIMIT_ATTEMPTS: int = 5  # 窗口内允许的连续失败次数
     LOGIN_RATE_LIMIT_WINDOW_MINUTES: int = 15  # 限流窗口时长
 
-    # LLM API 配置（任意 OpenAI 兼容接口：DeepSeek / 通义千问 / Ollama / one-api 等）
+    # LLM API 配置（任意 OpenAI 兼容接口：LM Studio / DeepSeek / 通义千问 / Ollama / one-api 等）
     LLM_API_KEY: str = ""  # 必须通过 .env 的 LLM_API_KEY 提供，切勿硬编码
-    LLM_BASE_URL: str = ""  # 留空走 OpenAI 官方接口；第三方网关一般填到 /v1 一级
+    LLM_BASE_URL: str = ""  # 留空走 OpenAI 官方接口；第三方网关一般填到 /v1 一级（如 LM Studio: http://localhost:1234/v1）
     LLM_MODEL: str = ""  # 留空时问答接口会返回明确的配置提示
+    LLM_TIMEOUT: int = 60  # 单次请求超时（秒），避免网络异常时流式回答永久挂起
+    LLM_MAX_RETRIES: int = 2  # 连接失败/超时后的自动重试次数（0 表示不重试）
 
     # 向量库配置（FAISS 本地持久化目录）
     VECTOR_STORE_DIR: str = "./db_data/vector_db"

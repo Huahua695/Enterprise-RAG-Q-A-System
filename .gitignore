@@ -43,7 +43,8 @@ Thumbs.db
 *.log
 
 # ==================== 其他 ====================
-data/
+# 仅忽略仓库根目录的 data/（不要把 frontend/src/data/ 一并吞掉）
+/data/
 *.pyo
 .coverage
 htmlcov/

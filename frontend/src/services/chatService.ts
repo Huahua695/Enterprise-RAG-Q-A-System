@@ -32,7 +32,8 @@ export const chatAPI = {
     sessionId: number,
     question: string,
     onChunk: (chunk: string) => void,
-    onReferences?: (refs: any[]) => void
+    onReferences?: (refs: any[]) => void,
+    signal?: AbortSignal
   ) => {
     const response = await fetch('/api/chat/send', {
       method: 'POST',
@@ -41,6 +42,7 @@ export const chatAPI = {
         Authorization: `Bearer ${localStorage.getItem('token')}`,
       },
       body: JSON.stringify({ session_id: sessionId, message: question }),
+      signal,
     })
 
     if (!response.ok) throw new Error('请求失败')

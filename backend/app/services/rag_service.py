@@ -83,6 +83,8 @@ class RAGEngine:
                 model=settings.LLM_MODEL,
                 temperature=0,
                 streaming=True,
+                timeout=settings.LLM_TIMEOUT,
+                max_retries=settings.LLM_MAX_RETRIES,
             )
         return self._llm
 

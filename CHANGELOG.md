@@ -2,6 +2,18 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 格式记录显著变更。
 
+## [2026-09-16] 一键双远端推送：`scripts/push_all.py` + `push-all.bat`
+
+### Added（新增）
+
+- **`scripts/push_all.py`**：一条命令把当前分支推到 Gitee（`origin`）与 GitHub（`github`）两个远端。
+  当本机访问不了 `github.com`（国内网络常见）时，GitHub 直推会失败，脚本**自动改走
+  GitHub Git Data API 兜底**（`blob → tree → commit → PATCH ref`），保留原 author/committer/message，
+  生成提交与本地 **sha 完全一致**，属无损搬运。仓库名从 `git remote get-url github` 自动推导，
+  令牌优先取环境变量 `GH_TOKEN`，否则读 git 凭据管理器。
+- **`push-all.bat`**：双击即用的入口（内部调用上面的脚本），适合不习惯命令行的场景。
+- **git 别名**：`git config alias.pushall` 指向同一脚本，命令行敲 `git pushall` 即可。
+
 ## [2026-09-16] 仓库复查修复：LLM 超时保护 + .gitignore 误伤 + 配置模板整理
 
 ### Added（新增）

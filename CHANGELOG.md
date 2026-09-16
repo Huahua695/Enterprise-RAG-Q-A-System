@@ -2,6 +2,38 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 格式记录显著变更。
 
+## [2026-09-16] CI 流水线可用性修复：pythonVersion 对齐 + 用例环境依赖缺陷
+
+### Fixed（修复）
+
+- **`test_fastembed_dispatch` 依赖外部环境变量**（`backend/tests/test_embeddings_factory.py`）：
+  该用例直接调用 `build_embeddings()` 并期望分发到 fastembed，但流水线注入了
+  `EMBEDDING_PROVIDER=local`，实际返回 `LocalHashEmbeddings` → **CI 首次运行即失败**
+  （复现：`1 failed, 36 passed`）。已改为在用例内显式
+  `monkeypatch.setattr(settings, "EMBEDDING_PROVIDER", "fastembed")`，
+  使被测前提由用例自己声明，不再随外部环境漂移。
+  同文件的 `test_default_provider_is_fastembed` 本就是按该设计写的（断言出厂默认值），
+  本次是把遗漏的那个补齐。
+- **`.workflow/master-pipeline.yml` 命令写法**：`pip` / `pip3` / `python` 混用改为统一的
+  `python3 -m pip` / `python3 -m pytest`。该插件基础镜像为 CentOS，统一写法可保证
+  pip 装入的包与执行 pytest 的解释器是同一个，且不依赖 `python` / `pip` 短名是否存在。
+
+### Changed（变更）
+
+- **`.workflow/master-pipeline.yml` 的 `pythonVersion`**：`'3.12'` → `'3.13'`，
+  与本地 `backend/.venv`（Python 3.13.14）对齐，消除版本错位风险。
+
+### 验证
+
+忠实复现 CI 条件（临时隐藏被忽略的 `backend/.env`、清除本机相关环境变量）：
+
+| 条件 | 结果 |
+|---|---|
+| `EMBEDDING_PROVIDER=local` + 无 `.env`（修复后 CI 实况） | 37 passed |
+| 不注入 `EMBEDDING_PROVIDER` + 无 `.env` | 37 passed |
+| 本地常规环境（有 `.env`） | 37 passed |
+| 同上第一项，但改动前用例代码 | 1 failed, 36 passed（复现 CI 失败） |
+
 ## [2026-09-16] 一键双远端推送：`scripts/push_all.py` + `push-all.bat`
 
 ### Added（新增）

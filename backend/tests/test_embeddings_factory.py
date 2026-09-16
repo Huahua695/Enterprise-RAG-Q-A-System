@@ -35,6 +35,9 @@ def test_fastembed_dispatch(monkeypatch):
         def __init__(self, **kwargs):
             captured.update(kwargs)
 
+    # 必须显式固定 provider：CI 会注入 EMBEDDING_PROVIDER=local 保持封闭，
+    # 不固定的话本用例会随外部环境变量而失败（而非断言出厂默认，那是上一个用例的职责）
+    monkeypatch.setattr(settings, "EMBEDDING_PROVIDER", "fastembed")
     monkeypatch.setattr(lce, "FastEmbedEmbeddings", DummyEmbeddings)
     embeddings = build_embeddings()
     assert isinstance(embeddings, DummyEmbeddings)

@@ -13,10 +13,13 @@ stages:
       - step: build@python
         name: run_pytest
         displayName: 运行 pytest
-        pythonVersion: '3.12'
+        # 与本地开发环境对齐：backend/.venv 为 Python 3.13
+        pythonVersion: '3.13'
+        # 依赖与测试统一用 `python3 -m` 调用：该插件基础镜像为 CentOS，
+        # 保证 pip 装的包和跑 pytest 的解释器是同一个，避免二者错位
         commands:
           - python3 -m pip install --upgrade pip
-          - pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
-          - pip install -r backend/requirements.txt
+          - python3 -m pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+          - python3 -m pip install -r backend/requirements.txt
           # EMBEDDING_PROVIDER=local：CI 内不下载语义模型，保持测试封闭（默认值为 fastembed 由单测断言）
-          - cd backend && EMBEDDING_PROVIDER=local SECRET_KEY=ci-dummy-secret LLM_API_KEY=ci-dummy-key python -m pytest -v
+          - cd backend && EMBEDDING_PROVIDER=local SECRET_KEY=ci-dummy-secret LLM_API_KEY=ci-dummy-key python3 -m pytest -v

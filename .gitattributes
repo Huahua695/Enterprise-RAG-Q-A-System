@@ -1,0 +1,19 @@
+# 行尾策略：仓库统一存 LF，检出一侧按平台适配
+# Windows 批处理必须用 CRLF，否则某些 cmd 版本会解析异常
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Unix 脚本与容器内文件保持 LF
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# 二进制资源不做任何行尾处理
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.faiss binary
+*.pkl binary

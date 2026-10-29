@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 import re
 
 from pydantic_settings import BaseSettings
@@ -33,6 +33,17 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "BAAI/bge-small-zh-v1.5"  # fastembed 模型；openai 模式下为接口模型名
     EMBEDDING_DIM: int = 1024  # 仅 local 哈希方案使用
     EMBEDDING_CACHE_DIR: str = "./db_data/models"  # 语义模型缓存（首次运行自动下载约 90MB）
+
+    # 检索阈值：低于该余弦相似度的块不进入 prompt。
+    # 实测（bge-small-zh + 示例语料）：相关查询首条 cos 0.63~0.81，
+    # 完全无关查询（如"如何做红烧肉"）最高仅 0.17，取 0.30 可稳定挡住无关内容。
+    RETRIEVAL_MIN_COS: float = 0.30
+
+    # 多轮对话历史预算（字符，近似 token）；
+    # 纯中文实测 1 字符≈1 token，历史段控制在 ~250 token 内，避免挤占检索上下文
+    CHAT_HISTORY_TURNS: int = 5  # 取最近 N 轮（1 轮 = 用户 + 助手）
+    CHAT_HISTORY_MAX_CHARS: int = 250
+    CHAT_HISTORY_MSG_CHARS: int = 120
 
     # 日志配置
     LOG_LEVEL: str = "INFO"  # DEBUG / INFO / WARNING / ERROR

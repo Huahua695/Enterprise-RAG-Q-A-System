@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from typing import Optional, List
@@ -7,6 +7,7 @@ import json
 import logging
 
 from app.core.database import get_db, SessionLocal
+from app.core.config import settings
 from app.models.models import User, Session as SessionModel, Message, KnowledgeBase as KBModel
 from app.schemas.chat import ChatRequest, ChatResponse, SessionCreate, SessionInfo, MessageInfo
 from app.core.security import get_current_user
@@ -135,6 +136,22 @@ async def send_question(
     session_id = session.id
     user_id = current_user.id
 
+    # 多轮上下文：取本会话最近 N 条历史（含刚写入的这条用户消息），
+    # 转成纯 dict 再交给生成协程，避免流式期间 ORM 对象过期
+    from app.models.models import Message as MessageModel
+
+    recent = (
+        db.query(MessageModel)
+        .filter(MessageModel.session_id == session_id)
+        .order_by(MessageModel.id.desc())
+        .limit(settings.CHAT_HISTORY_TURNS * 2)
+        .all()
+    )
+    history = [
+        {"role": m.role, "content": m.content}
+        for m in reversed(recent)
+    ]
+
     async def event_generator():
         full_answer = ""
         references: List[dict] = []
@@ -149,8 +166,8 @@ async def send_question(
             ]
             yield _sse({"type": "references", "references": references})
 
-            # 4. 真流式生成答案
-            async for chunk in rag_engine.astream_answer(request.message, docs):
+            # 4. 真流式生成答案（携带多轮历史，支持指代性追问）
+            async for chunk in rag_engine.astream_answer(request.message, docs, history=history):
                 full_answer += chunk
                 yield _sse({"type": "answer", "content": chunk})
 

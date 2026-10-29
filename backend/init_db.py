@@ -1,4 +1,4 @@
-﻿"""数据库初始化脚本（幂等：已有数据时不会覆盖）
+"""数据库初始化脚本（幂等：已有数据时不会覆盖）
 
 关键：必须在此文件所有 import 之前设置 os.environ，
 因为 app.core.config.Settings 是模块级单例，在首次导入时即完成初始化。
@@ -87,7 +87,13 @@ def init_database():
 
                     text = parse_document(sample_path, "txt")
                     chunks = rag_engine.split_document(text)
-                    rag_engine.add_documents(chunks, collection_name=f"kb_{kb.id}")
+                    metadatas = [
+                        {"source": "ecommerce_products.txt", "doc_id": doc.id, "kb_id": kb.id}
+                        for _ in chunks
+                    ]
+                    rag_engine.add_documents(
+                        chunks, collection_name=f"kb_{kb.id}", metadatas=metadatas
+                    )
                     doc.content = text  # 保存原始文本
                     doc.chunk_count = len(chunks)
                     doc.status = "completed"

@@ -25,7 +25,17 @@ def process_document(doc_id: int, kb_id: int, file_path: str, file_type: str) ->
     try:
         text = parse_document(file_path, file_type)
         chunks = rag_engine.split_document(text)
-        rag_engine.add_documents(chunks, collection_name=f"kb_{kb_id}")
+        # 写入来源 metadata：否则所有块的 metadata 为空，引用无法溯源到文件
+        doc_row = db.get(DocumentModel, doc_id)
+        metadatas = [
+            {
+                "source": doc_row.filename if doc_row else file_path,
+                "doc_id": doc_id,
+                "kb_id": kb_id,
+            }
+            for _ in chunks
+        ]
+        rag_engine.add_documents(chunks, collection_name=f"kb_{kb_id}", metadatas=metadatas)
 
         doc = db.get(DocumentModel, doc_id)
         if doc is not None:

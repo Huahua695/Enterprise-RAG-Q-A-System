@@ -33,7 +33,15 @@ def rebuild():
                     raise FileNotFoundError(f"文件不存在: {doc.file_path}")
                 text = parse_document(doc.file_path, doc.file_type)
                 chunks = rag_engine.split_document(text)
-                rag_engine.add_documents(chunks, collection_name=f"kb_{doc.knowledge_base_id}")
+                metadatas = [
+                    {"source": doc.filename, "doc_id": doc.id, "kb_id": doc.knowledge_base_id}
+                    for _ in chunks
+                ]
+                rag_engine.add_documents(
+                    chunks,
+                    collection_name=f"kb_{doc.knowledge_base_id}",
+                    metadatas=metadatas,
+                )
                 doc.chunk_count = len(chunks)
                 doc.status = "completed"
                 doc.error_message = None

@@ -25,6 +25,14 @@ def process_document(doc_id: int, kb_id: int, file_path: str, file_type: str) ->
     try:
         text = parse_document(file_path, file_type)
         chunks = rag_engine.split_document(text)
+        # 解析出文本却没有切出任何块 => 入索引会是空的，却回报 completed、
+        # chunk_count=0。此前这属于"静默成功"，用户完全无感知，必须显式失败。
+        if not chunks:
+            raise ValueError(
+                "文档解析后没有可索引的内容（切块数为 0）："
+                f"解析得到 {len(text or '')} 个字符。请确认文件非空且包含可提取的文本。"
+            )
+
         # 写入来源 metadata：否则所有块的 metadata 为空，引用无法溯源到文件
         doc_row = db.get(DocumentModel, doc_id)
         metadatas = [
@@ -51,7 +59,8 @@ def process_document(doc_id: int, kb_id: int, file_path: str, file_type: str) ->
             doc = db.get(DocumentModel, doc_id)
             if doc is not None:
                 doc.status = "failed"
-                doc.error_message = str(e)
+                # 只存可读的原因并截断，避免把含服务器路径的完整异常栈透传前端
+                doc.error_message = str(e)[:500]
                 db.commit()
         except Exception:
             db.rollback()

@@ -98,6 +98,11 @@ def main():
     parser = argparse.ArgumentParser(description="RAG 检索质量评测")
     parser.add_argument("--provider", default="local", help="local / fastembed / openai")
     parser.add_argument("--k", type=int, default=5)
+    # 作为 CI 守门人：低于阈值以非零码退出，检索质量回退时能被流水线拦住
+    parser.add_argument("--min-mrr", type=float, default=None,
+                        help="低于该 MRR 则返回非零退出码（用于 CI 守门）")
+    parser.add_argument("--min-recall", type=float, default=None,
+                        help="低于该 Recall 则返回非零退出码")
     args = parser.parse_args()
 
     result = evaluate(args.provider, args.k)
@@ -109,6 +114,20 @@ def main():
     for query, rank in result["details"]:
         flag = f"hit@{rank}" if rank else "miss"
         print(f"[{flag:>6}] {query}")
+
+    failed = []
+    if args.min_mrr is not None and result["mrr_at_k"] < args.min_mrr:
+        failed.append(f"MRR@{result['k']}={result['mrr_at_k']:.3f} < 要求 {args.min_mrr}")
+    if args.min_recall is not None and result["recall_at_k"] < args.min_recall:
+        failed.append(f"Recall@{result['k']}={result['recall_at_k']:.2%} < 要求 {args.min_recall:.2%}")
+
+    if failed:
+        print("\n!! 质量门禁未通过：")
+        for f in failed:
+            print("   -", f)
+        return 1
+    if args.min_mrr is not None or args.min_recall is not None:
+        print("\n== 质量门禁通过 ==")
     return 0
 
 

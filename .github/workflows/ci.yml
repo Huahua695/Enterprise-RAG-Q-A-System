@@ -35,3 +35,11 @@ jobs:
           SECRET_KEY: ci-dummy-secret
           LLM_API_KEY: ci-dummy-key
         run: python -m pytest -v
+
+      # 检索质量守门：用 local 哈希向量化（无需下载模型），阈值按当前基线
+      # MRR 0.792 / Recall 100% 留出余量。切块或检索逻辑回退时会被拦住。
+      - name: Retrieval quality gate
+        env:
+          SECRET_KEY: ci-dummy-secret
+          LLM_API_KEY: ci-dummy-key
+        run: python eval_retrieval.py --provider local --k 5 --min-mrr 0.75 --min-recall 0.95

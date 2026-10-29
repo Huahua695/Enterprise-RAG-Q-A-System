@@ -58,3 +58,6 @@ htmlcov/
 # ===== 本地安全审计产物（勿入库） =====
 /audit_report_gitee.md
 /git-secret-audit.zip
+
+# ===== 素材源文件（体积大，成品图已入库 frontend/src/assets/products/）=====
+/宠物用品图集/

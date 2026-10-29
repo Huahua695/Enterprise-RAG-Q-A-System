@@ -20,6 +20,7 @@ python-docx>=1.1.0
 python-dotenv>=1.0.1
 aiofiles>=24.1.0
 openpyxl>=3.1.2
+xlrd>=2.0.1             # 老版 .xls 读取引擎（pandas 读 xls 必需；2.x 仅支持 xls）
 pandas>=2.2.3
 requests>=2.32.3
 

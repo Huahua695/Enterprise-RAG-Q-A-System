@@ -1,4 +1,4 @@
-﻿from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 from uuid import uuid4
 
@@ -60,3 +60,17 @@ def get_current_user(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="用户已被禁用")
     return user
+
+
+def require_admin(current_user: User = Depends(get_current_user)) -> User:
+    """管理员权限校验。
+
+    必须在服务端强制：前端 ProtectedRoute 只看 localStorage 里的 role，
+    改一行 JS 或直接 curl 就能绕过，不能作为权限边界。
+    """
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="需要管理员权限",
+        )
+    return current_user

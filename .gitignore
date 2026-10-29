@@ -11,7 +11,8 @@ backend/.venv/
 __pycache__/
 *.py[cod]
 .pytest_cache/
-test-results/  # playwright 失败产物
+# playwright 失败产物
+test-results/
 .ruff_cache/
 *.egg-info/
 dist/

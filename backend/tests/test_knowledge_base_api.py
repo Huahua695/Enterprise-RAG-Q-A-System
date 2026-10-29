@@ -19,6 +19,8 @@ from app.routes.knowledge_base import router
 
 class FakeUser:
     id = 1
+    # 写操作路由现在依赖 require_admin，替身需带上 role
+    role = "admin"
 
 
 @pytest.fixture()

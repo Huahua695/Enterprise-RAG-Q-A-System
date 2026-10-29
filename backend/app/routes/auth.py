@@ -1,8 +1,9 @@
-﻿import logging
+import logging
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from jose import JWTError, jwt
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -30,9 +31,14 @@ def _utcnow_naive() -> datetime:
 
 @router.post("/register", response_model=UserInfo)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    existing_user = db.query(User).filter(
-        (User.username == user_data.username) | (User.email == user_data.email)
-    ).first()
+    # email 是可选字段：留空时不能参与查重。
+    # 原写法 `User.email == None` 会生成 `email IS NULL`，只要库里已存在任意一个
+    # 未填邮箱的用户（init_db 创建的 admin 就不带 email），第二个未填邮箱的注册
+    # 就会误判为“已存在”而被拒绝。
+    conditions = [User.username == user_data.username]
+    if user_data.email:
+        conditions.append(User.email == user_data.email)
+    existing_user = db.query(User).filter(or_(*conditions)).first()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

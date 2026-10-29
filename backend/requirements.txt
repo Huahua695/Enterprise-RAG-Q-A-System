@@ -1,4 +1,4 @@
-﻿# RAG 企业级知识库问答系统 - 后端依赖（已适配 Python 3.13）
+# RAG 企业级知识库问答系统 - 后端依赖（已适配 Python 3.13）
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
 sqlalchemy>=2.0.35
@@ -13,6 +13,7 @@ langchain-core>=0.3.0
 langchain-community>=0.3.0
 langchain-openai>=0.2.0
 faiss-cpu>=1.9.0
+jieba>=0.42.1            # local 哈希 Embedding 的中文分词（local_embeddings.py 直接 import，勿漏）
 fastembed>=0.8.0         # 真实语义 Embedding（默认 provider，ONNX 版 bge-small-zh，首次运行自动下载模型）
 pymupdf>=1.24.0
 python-docx>=1.1.0

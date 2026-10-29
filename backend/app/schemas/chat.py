@@ -1,4 +1,4 @@
-﻿from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -29,7 +29,8 @@ class DocumentInfo(BaseModel):
 class KnowledgeBaseCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     description: Optional[str] = None
-    is_public: bool = True
+    # 默认私有，由前端显式勾选才公开
+    is_public: bool = False
 
 
 class KnowledgeBaseInfo(BaseModel):
@@ -81,7 +82,8 @@ class MessageInfo(BaseModel):
 
 class ChatRequest(BaseModel):
     session_id: int
-    message: str
+    # 上限防止超长消息原样进检索与 LLM（成本/延迟不可控）
+    message: str = Field(..., min_length=1, max_length=2000)
 
 
 class ChatResponse(BaseModel):

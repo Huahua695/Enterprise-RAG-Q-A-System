@@ -1,4 +1,4 @@
-﻿import api from './api'
+import api from './api'
 
 export interface Message {
   id: number
@@ -33,7 +33,8 @@ export const chatAPI = {
     question: string,
     onChunk: (chunk: string) => void,
     onReferences?: (refs: any[]) => void,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    onError?: (message: string) => void
   ) => {
     const response = await fetch('/api/chat/send', {
       method: 'POST',
@@ -69,8 +70,14 @@ export const chatAPI = {
               onChunk(data.content)
             } else if (data.type === 'references') {
               onReferences?.(data.references)
+            } else if (data.type === 'error') {
+              // 后端会在这里给出可自助修复的提示（如「LLM 未配置」），不能吞掉
+              onError?.(data.message || '服务内部错误，请稍后重试')
             }
-          } catch {}
+          } catch (e) {
+            // 仅忽略单行解析失败（如心跳/半包），不能让整个流静默中断
+            console.warn('SSE 行解析失败', line, e)
+          }
         }
       }
     }
@@ -78,8 +85,8 @@ export const chatAPI = {
 
   // 知识库管理
   getKnowledgeBases: () => api.get('/knowledge/knowledge-bases'),
-  createKnowledgeBase: (name: string, description?: string) =>
-    api.post('/knowledge/knowledge-bases', { name, description }),
+  createKnowledgeBase: (name: string, description?: string, isPublic: boolean = false) =>
+    api.post('/knowledge/knowledge-bases', { name, description, is_public: isPublic }),
   deleteKnowledgeBase: (kbId: number) =>
     api.delete(`/knowledge/knowledge-bases/${kbId}`),
   listDocuments: (kbId?: number) =>

@@ -38,6 +38,8 @@ interface StreamState {
   streamingAnswer: string
   // SSE references 事件即时到达的引用，不再等流结束才展示
   liveReferences: any[]
+  // 后端通过 SSE error 事件下发的错误文案（如 LLM 未配置），需在气泡里展示
+  error?: string
 }
 
 export default function ChatPage() {
@@ -150,6 +152,7 @@ export default function ChatPage() {
 
     let fullAnswer = ''
     const refs: any[] = []
+    let streamError: string | null = null
 
     try {
       await chatAPI.sendQuestion(
@@ -163,8 +166,27 @@ export default function ChatPage() {
           refs.push(...referenceRefs)
           updateStream(sid, { stage: 'generating', liveReferences: referenceRefs })
         },
-        controller.signal
+        controller.signal,
+        // 后端错误（如 LLM 未配置）落到气泡里，而不是让流"静默结束"
+        (errMsg) => {
+          streamError = errMsg
+        }
       )
+
+      if (streamError) {
+        // 生成失败：把错误作为一条助手消息落进当前会话（仅当仍停留在此会话）
+        if (activeSessionIdRef.current === sid) {
+          setMessages(prev => [...prev, {
+            id: Date.now() + 2,
+            session_id: sid,
+            role: 'assistant',
+            content: `> ⚠️ ${streamError}`,
+            created_at: new Date().toISOString(),
+          }])
+        }
+        updateStream(sid, null)
+        return
+      }
 
       // 生成完成：仅当用户仍停留在该会话时刷新消息列表，
       // 否则不打扰当前视图，切回时 loadMessages 会从服务端加载

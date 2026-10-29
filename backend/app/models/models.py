@@ -26,7 +26,8 @@ class KnowledgeBase(Base):
     name = Column(String(100), nullable=False)
     description = Column(Text, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
-    is_public = Column(Boolean, default=True)
+    # 默认私有：知识库内容默认只对创建者可见，避免"企业知识库"默认对全员开放
+    is_public = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 

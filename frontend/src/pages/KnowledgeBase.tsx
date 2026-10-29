@@ -1,5 +1,5 @@
-﻿import { useState, useEffect } from 'react'
-import { Layout, Table, Button, Modal, Form, Input, Upload, message, Typography, Spin, Tag, Tooltip } from 'antd'
+import { useState, useEffect } from 'react'
+import { Layout, Table, Button, Modal, Form, Input, Upload, message, Typography, Spin, Tag, Tooltip, Switch } from 'antd'
 import { PlusOutlined, DeleteOutlined, InboxOutlined, BookOutlined, FileTextOutlined } from '@ant-design/icons'
 import { chatAPI } from '../services/chatService'
 
@@ -62,7 +62,7 @@ export default function KnowledgeBase() {
 
   const handleCreateKB = async (values: any) => {
     try {
-      await chatAPI.createKnowledgeBase(values.name, values.description)
+      await chatAPI.createKnowledgeBase(values.name, values.description, !!values.is_public)
       message.success('知识库创建成功')
       setModalOpen(false)
       form.resetFields()
@@ -117,6 +117,15 @@ export default function KnowledgeBase() {
     { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
     { title: '名称', dataIndex: 'name', key: 'name' },
     { title: '描述', dataIndex: 'description', key: 'description' },
+    {
+      title: '可见性',
+      dataIndex: 'is_public',
+      key: 'is_public',
+      render: (isPublic: boolean) =>
+        isPublic
+          ? <Tag color="green">公开</Tag>
+          : <Tag color="default">私有</Tag>,
+    },
     { title: '文档数', dataIndex: 'document_count', key: 'document_count' },
     {
       title: '操作',
@@ -235,6 +244,15 @@ export default function KnowledgeBase() {
             </Form.Item>
             <Form.Item name="description" label="描述">
               <Input.TextArea placeholder="输入知识库描述" rows={3} />
+            </Form.Item>
+            <Form.Item
+              name="is_public"
+              label="公开给所有用户"
+              valuePropName="checked"
+              initialValue={false}
+              extra="默认私有，仅创建者可见；开启后其他用户也能检索该知识库"
+            >
+              <Switch />
             </Form.Item>
           </Form>
         </Modal>

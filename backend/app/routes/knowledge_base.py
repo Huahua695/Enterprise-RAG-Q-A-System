@@ -1,6 +1,7 @@
-﻿from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 from typing import Optional, List
+import asyncio
 import logging
 import os
 import uuid
@@ -8,7 +9,7 @@ import uuid
 from app.core.database import get_db
 from app.models.models import User, Document as DocumentModel, KnowledgeBase as KBModel
 from app.schemas.chat import DocumentInfo, KnowledgeBaseCreate, KnowledgeBaseInfo
-from app.core.security import get_current_user
+from app.core.security import get_current_user, require_admin
 from app.services.rag_service import rag_engine
 from app.services.document_parser import parse_document
 from app.services.document_processor import process_document
@@ -46,7 +47,7 @@ async def list_knowledge_bases(
 @router.post("/knowledge-bases", response_model=dict)
 async def create_knowledge_base(
     kb_data: KnowledgeBaseCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     new_kb = KBModel(
@@ -72,7 +73,7 @@ async def create_knowledge_base(
 @router.delete("/knowledge-bases/{kb_id}")
 async def delete_knowledge_base(
     kb_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     kb = db.query(KBModel).filter(
@@ -141,7 +142,8 @@ async def get_document_content(
     if not text and doc.file_path:
         try:
             if os.path.exists(doc.file_path):
-                text = parse_document(doc.file_path, doc.file_type)
+                # 解析大 PDF 可能耗时数秒，放线程池，避免阻塞事件循环卡住所有并发请求
+                text = await asyncio.to_thread(parse_document, doc.file_path, doc.file_type)
         except Exception:
             logger.warning("文档 %s（%s）重新解析失败", doc.id, doc.filename, exc_info=True)
             text = "[文件已不存在或无法解析]"
@@ -159,7 +161,7 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     knowledge_base_id: int = Form(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
     # 检查知识库是否存在且属于当前用户
